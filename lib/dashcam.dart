@@ -77,12 +77,14 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       final rows = await dir.list(followLinks: false).where((e) => e is File && isDashClip(e.uri.pathSegments.last)).cast<File>().toList();
       rows.sort((a,b) => b.path.compareTo(a.path));
       final records = await readLibrary(dir);
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         clips = rows;
         protectedNames = records.where((c) => c.locked).map((c) => c.name).toSet();
         libraryBytes = records.fold(0, (sum, c) => sum + c.bytes);
         libraryReady = true;
-      });
+        });
+      }
     } catch (_) {
       if (mounted) setState(() { libraryReady = false; status = 'Không đọc được video đã lưu'; });
     }
