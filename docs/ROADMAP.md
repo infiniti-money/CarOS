@@ -60,10 +60,13 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 44 | Hệ thống | RAM/CPU/pin/nhiệt | Vướng | Cần đo thiết bị thật |
 | 45 | Hệ thống | Dependency/bảo mật | Một phần | CI thư viện 45958039759 đạt; cần audit bảo mật |
 | 46 | Hệ thống | APK/IPA ký hợp lệ | Vướng | Cần chứng chỉ và profile được cấp quyền |
-| 47 | Hệ thống | Cập nhật/rollback | Chưa xác minh | Cần quy trình và kiểm thử |
+| 47 | Hệ thống | Cập nhật/rollback | Một phần | scripts/apk_manifest.py: checksum, kế hoạch rollback debug, test; cần ký và thử migration/rollback thiết bị |
 | 48 | Hệ thống | Workflow kiểm tra 15 phút | Một phần | Monitor mở rộng app/dependency/host; PR #27 run 45984492091 đạt; chưa thấy schedule run |
 
 Monitor cấu hình cron `7,22,37,52 * * * *` UTC; chạy lịch có thể trễ. Không coi monitor xanh là CI build xanh. Không phát hành chính thức khi chưa được cấp quyền.
 
 ## Tích hợp tiếp theo
 Main `d22697e592a3a4be06d528b2fa7995bc6eeaa109` chứa PR #24 và toàn bộ ancestry #21–23; ba PR cũ đã đóng. PR #26 tích hợp thêm #25 (quyền riêng tư) và #27 (CI Monitor) với lịch sử commit nguyên vẹn, cần CI mới trên main. Chưa nghiệm thu đủ 48 tiêu chí; không tính PR xanh thay cho kiểm thử thiết bị thực tế.
+
+## Mốc sau PR #29
+Main 2a60a7b5eab67b7ffcfb442cf95cfac8bc2e72fa, PR #29 đã tích hợp; CI main 45996347044 đang chạy tại lúc cập nhật. PR #26/#28 đã tích hợp, #28 rerun thành công. Không coi CI PR là nghiệm thu thiết bị.

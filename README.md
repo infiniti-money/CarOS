@@ -14,3 +14,6 @@ flutter run
 Các thư mục native được tạo bởi Flutter; iOS cần macOS/Xcode. CI build APK debug và iOS simulator, không phải IPA ký để cài trên iPhone.
 ## Lộ trình
 Xem [ROADMAP](docs/ROADMAP.md). Giao diện kính hiện là hiệu ứng Flutter, chưa phải Liquid Glass native. Không thao tác khi đang lái xe.
+
+## Gói CI và khôi phục
+Xem [quy trình xác minh APK và rollback](docs/RELEASE_RECOVERY.md). APK debug không phải bản phân phối chính thức; checksum không thay thế kiểm tra chữ ký.

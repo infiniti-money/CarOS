@@ -18,16 +18,24 @@ jobs:
       - run: flutter create --platforms=android --org com.infinitimoney --project-name infiniti_caros .
       - run: rm -f test/widget_test.dart
       - run: python3 scripts/configure_location.py android
-      - run: python3 -m unittest discover -s scripts -p test_configure_phone_audio.py
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: python3 scripts/configure_phone_audio.py android
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - run: flutter build apk --debug
+      - name: Generate and verify APK integrity manifest
+        run: |
+          APK=build/app/outputs/flutter-apk/app-debug.apk
+          python3 scripts/apk_manifest.py create --apk "$APK" --commit "$(git rev-parse HEAD)" --output build/app/outputs/flutter-apk/apk-manifest.json
+          python3 scripts/apk_manifest.py verify --apk "$APK" --manifest build/app/outputs/flutter-apk/apk-manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: infiniti-caros-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: |
+            build/app/outputs/flutter-apk/app-debug.apk
+            build/app/outputs/flutter-apk/apk-manifest.json
+          if-no-files-found: error
   ios:
     runs-on: macos-latest
     steps:
