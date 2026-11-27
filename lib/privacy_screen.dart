@@ -44,8 +44,10 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       final result = await sharing.SharePlus.instance.share(sharing.ShareParams(
         text: text, sharePositionOrigin: origin,
       ));
-      if (mounted) setState(() => status = result.status == sharing.ShareResultStatus.dismissed ?
-        'Đã đóng bảng chia sẻ.' : 'Đã mở bảng chia sẻ; CarOS không xác nhận dữ liệu đã được gửi.');
+      if (mounted) {
+        setState(() => status = result.status == sharing.ShareResultStatus.dismissed ?
+          'Đã đóng bảng chia sẻ.' : 'Đã mở bảng chia sẻ; CarOS không xác nhận dữ liệu đã được gửi.');
+      }
     } catch (_) {
       if (mounted) setState(() => status = 'Không thể xuất dữ liệu.');
     } finally {
@@ -69,10 +71,12 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       if (!mounted || approved != true) return;
       await widget.prefs.reload();
       final failed = await deletePersonalRecords(widget.prefs, selection);
-      if (mounted) setState(() {
-        selected.removeAll(selection.difference(failed));
-        status = failed.isEmpty ? 'Đã xóa dữ liệu đã chọn.' : 'Một số mục chưa xóa được: ${failed.map((x) => labels[x]).join(', ')}';
-      });
+      if (mounted) {
+        setState(() {
+          selected.removeAll(selection.difference(failed));
+          status = failed.isEmpty ? 'Đã xóa dữ liệu đã chọn.' : 'Một số mục chưa xóa được: ${failed.map((x) => labels[x]).join(', ')}';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => status = 'Không thể hoàn thành yêu cầu xóa.');
     } finally {
