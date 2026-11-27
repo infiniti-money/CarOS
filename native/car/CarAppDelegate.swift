@@ -9,6 +9,13 @@ private let sharedCarEngine = FlutterEngine(name: "InfinitiSharedCarEngine", pro
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         sharedCarEngine.run()
         GeneratedPluginRegistrant.register(with: sharedCarEngine)
+        registerInfinitiGlass(sharedCarEngine)
+        registerInfinitiFace(sharedCarEngine)
+        let profile = FlutterMethodChannel(name: "infiniti/car_profile", binaryMessenger: sharedCarEngine.binaryMessenger)
+        profile.setMethodCallHandler { call, result in
+            guard call.method == "category" else { result(FlutterMethodNotImplemented); return }
+            result(Bundle.main.object(forInfoDictionaryKey: "InfinitiCarCategory") as? String)
+        }
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 }

@@ -12,9 +12,9 @@ import xml.etree.ElementTree as ET
 NS = 'http://schemas.android.com/apk/res/android'
 ET.register_namespace('android', NS)
 A = '{' + NS + '}'
-KEY = 'com.apple.developer.carplay-driving-task'
+KEYS = {'driving-task': 'com.apple.developer.carplay-driving-task', 'audio': 'com.apple.developer.carplay-audio'}
 
-def verify_profile(profile, bundle):
+def verify_profile(profile, bundle, key):
     data = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(profile)]))
     ent = data.get('Entitlements', {})
     expiration = data.get('ExpirationDate')
@@ -26,19 +26,23 @@ def verify_profile(profile, bundle):
     if expiration <= now:
         raise ValueError('Provisioning profile expired')
     app_id = ent.get('application-identifier', '')
-    if app_id.split('.', 1)[-1] != bundle or ent.get(KEY) is not True:
-        raise ValueError('Profile does not match bundle and approved driving-task entitlement')
+    if app_id.split('.', 1)[-1] != bundle or ent.get(key) is not True:
+        raise ValueError('Profile does not match bundle and approved category entitlement')
 
 def ios(args):
     from configure_ios_floor import configure_ios_floor
+    if args.category not in KEYS:
+        raise ValueError('Navigation and other categories are not implemented')
+    key = KEYS[args.category]
     if not args.simulator:
         if not args.profile or not args.bundle_id:
             raise ValueError('Device build requires --profile and --bundle-id')
-        verify_profile(args.profile, args.bundle_id)
+        verify_profile(args.profile, args.bundle_id, key)
     configure_ios_floor()
     runner = Path('ios/Runner')
     plist = runner / 'Info.plist'
     data = plistlib.loads(plist.read_bytes())
+    data['InfinitiCarCategory'] = args.category
     manifest = data.setdefault('UIApplicationSceneManifest', {})
     configs = manifest.setdefault('UISceneConfigurations', {})
     manifest['UIApplicationSupportsMultipleScenes'] = False
@@ -52,9 +56,9 @@ def ios(args):
     }]
     plist.write_bytes(plistlib.dumps(data))
     app = runner / 'AppDelegate.swift'
-    app.write_text(Path('native/car/CarAppDelegate.swift').read_text())
+    app.write_text(Path('native/car/CarAppDelegate.swift').read_text() + '\n' + Path('native/ios/GlassBar.swift').read_text() + '\n' + Path('native/ios/FaceControl.swift').read_text())
     if not args.simulator:
-        (runner / 'CarPlay.entitlements').write_bytes(plistlib.dumps({KEY: True}))
+        (runner / 'CarPlay.entitlements').write_bytes(plistlib.dumps({key: True}))
         # Signing identity, team, profile and bundle must still be configured in Xcode.
         # No blanket entitlement is enabled in the ordinary phone build.
         for name in ('Debug', 'Release', 'Profile'):
@@ -104,6 +108,7 @@ def android(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('platform', choices=['ios', 'android'])
+    parser.add_argument('--category', choices=sorted(KEYS), default='driving-task')
     parser.add_argument('--simulator', action='store_true')
     parser.add_argument('--development', action='store_true')
     parser.add_argument('--profile', type=Path)
