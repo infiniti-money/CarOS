@@ -9,7 +9,7 @@ void main() {
     await tester.pumpWidget(InfinitiApp(prefs: prefs));
     expect(find.text('INFINITI'), findsOneWidget);
     expect(find.text('— km/h'), findsOneWidget);
-    expect(find.text('GPS chưa tích hợp'), findsOneWidget);
+    expect(find.text('GPS chưa bật'), findsOneWidget);
     await tester.tap(find.byTooltip('Đổi chế độ sáng tối'));
     await tester.pumpAndSettle();
     expect(prefs.getBool('dark'), false);

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'trip.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,7 +25,7 @@ class _InfinitiAppState extends State<InfinitiApp> {
     title: 'Infiniti CarOS',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(colorSchemeSeed: const Color(0xff4789db), brightness: dark ? Brightness.dark : Brightness.light, useMaterial3: true),
-    home: Dashboard(dark: dark, glass: glass, onDark: (v) {
+    home: Dashboard(prefs: widget.prefs, dark: dark, glass: glass, onDark: (v) {
       setState(() => dark = v);
       widget.prefs.setBool('dark', v);
     }, onGlass: (v) {
@@ -35,7 +36,8 @@ class _InfinitiAppState extends State<InfinitiApp> {
 }
 
 class Dashboard extends StatelessWidget {
-  const Dashboard({super.key, required this.dark, required this.glass, required this.onDark, required this.onGlass});
+  const Dashboard({super.key, required this.prefs, required this.dark, required this.glass, required this.onDark, required this.onGlass});
+  final SharedPreferences prefs;
   final bool dark, glass;
   final ValueChanged<bool> onDark, onGlass;
 
@@ -83,7 +85,7 @@ class Dashboard extends StatelessWidget {
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: dark ? const [Color(0xff101b2d), Color(0xff26364a)] : const [Color(0xffe3efff), Color(0xfff6f8fc)])),
       child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
         final wide = constraints.maxWidth >= 650;
-        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: wide ? 6 : 3, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.15, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: wide ? 6 : 3, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 128, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(e.$2, size: 30, color: scheme.primary), const SizedBox(height: 6),
           Text(e.$1, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
         ])))).toList());
@@ -92,12 +94,9 @@ class Dashboard extends StatelessWidget {
             const Text('INFINITI', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 4)),
             const Text('CarOS • Tiếng Việt'),
             const SizedBox(height: 12),
-            panel(context, const Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Chế độ độc lập • Chưa có dữ liệu GPS hoặc kết nối xe'))])),
+            panel(context, const Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Chế độ độc lập • Chưa kết nối xe'))])),
             const SizedBox(height: 12),
-            panel(context, Row(children: [
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Hành trình'), Text('— km/h', style: TextStyle(fontSize: 28)), Text('GPS chưa tích hợp')])),
-              FilledButton.icon(onPressed: () => open(context, 'https://www.google.com/maps'), icon: const Icon(Icons.navigation), label: const Text('Mở bản đồ')),
-            ])),
+            panel(context, TripPanel(prefs: prefs)),
             const SizedBox(height: 12), tiles,
           ])),
           Padding(padding: const EdgeInsets.all(12), child: panel(context, Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
