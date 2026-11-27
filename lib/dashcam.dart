@@ -190,15 +190,15 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       var published = false;
       var recovered = false;
       try {
-        final records = await readLibrary(dir);
-        final removeNames = planClipEviction(records, await source.length(), loop: loop);
-        if (removeNames == null) throw StateError('Không đủ dung lượng video');
-        // Persist the protection marker before publishing a protected clip.
+        // Persist protection before quota admission, including failed saves.
         // A failed publish may leave an orphan marker, but cannot expose an
         // event clip to automatic eviction.
         if (protectCurrent) {
           await File('${dir.path}/$name.lock').writeAsString('protected', flush: true);
         }
+        final records = await readLibrary(dir);
+        final removeNames = planClipEviction(records, await source.length(), loop: loop);
+        if (removeNames == null) throw StateError('Không đủ dung lượng video');
         await saveDashClip(dir, name, result.saveTo);
         published = true;
         for (final old in removeNames) {
