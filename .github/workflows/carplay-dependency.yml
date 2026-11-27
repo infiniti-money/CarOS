@@ -24,9 +24,9 @@ jobs:
         run: |
           PIN=$(python3 -c 'import re; from pathlib import Path; s=Path("pubspec.yaml").read_text(); print(re.search(r"flutter_carplay:\s*\n\s*git:\s*\n\s*url: https://github.com/infiniti-money/carplay.git\s*\n\s*ref: ([0-9a-f]{40})", s).group(1))')
           test "$PIN" = b457538fab39aa2cac112bfc4c23cad749ada4dd
-          git clone --no-checkout https://github.com/infiniti-money/carplay.git dependency
-          git -C dependency checkout --detach "$PIN"
-          test "$(git -C dependency rev-parse HEAD)" = "$PIN"
+          git clone --no-checkout https://github.com/infiniti-money/carplay.git flutter_carplay
+          git -C flutter_carplay checkout --detach "$PIN"
+          test "$(git -C flutter_carplay rev-parse HEAD)" = "$PIN"
           echo "Pinned CarPlay commit: $PIN" >> "$GITHUB_STEP_SUMMARY"
       - uses: subosito/flutter-action@v2
         with:
@@ -34,19 +34,19 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-        working-directory: dependency
+        working-directory: flutter_carplay
       - run: dart format --output=none --set-exit-if-changed lib test example/lib example/test
-        working-directory: dependency
+        working-directory: flutter_carplay
       - run: flutter analyze
-        working-directory: dependency
+        working-directory: flutter_carplay
       - run: flutter test
-        working-directory: dependency
+        working-directory: flutter_carplay
       - run: flutter pub get
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - run: flutter analyze
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - run: flutter test
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
 
   ios:
     name: iOS example build
@@ -60,9 +60,9 @@ jobs:
         run: |
           PIN=$(python3 -c 'import re; from pathlib import Path; s=Path("pubspec.yaml").read_text(); print(re.search(r"flutter_carplay:\s*\n\s*git:\s*\n\s*url: https://github.com/infiniti-money/carplay.git\s*\n\s*ref: ([0-9a-f]{40})", s).group(1))')
           test "$PIN" = b457538fab39aa2cac112bfc4c23cad749ada4dd
-          git clone --no-checkout https://github.com/infiniti-money/carplay.git dependency
-          git -C dependency checkout --detach "$PIN"
-          test "$(git -C dependency rev-parse HEAD)" = "$PIN"
+          git clone --no-checkout https://github.com/infiniti-money/carplay.git flutter_carplay
+          git -C flutter_carplay checkout --detach "$PIN"
+          test "$(git -C flutter_carplay rev-parse HEAD)" = "$PIN"
           echo "Pinned CarPlay commit: $PIN" >> "$GITHUB_STEP_SUMMARY"
       - run: sudo xcode-select --switch /Applications/Xcode_26.5.app
       - uses: subosito/flutter-action@v2
@@ -71,11 +71,11 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - run: flutter build ios --simulator --debug
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - run: flutter build ios --simulator --debug --target lib/voice_control_main.dart
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - name: Build conversational app entitlement configuration
         run: >-
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner
@@ -83,9 +83,9 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           FLUTTER_TARGET=lib/voice_control_main.dart
           CARPLAY_ENTITLEMENTS_FILE=Conversational.entitlements build
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - name: Run native CarPlay regressions
-        working-directory: dependency
+        working-directory: flutter_carplay
         run: |
           gem install xcodeproj --user-install --no-document
           DEVICE=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for runtime,rows in d["devices"].items() for x in rows if "iOS-26-" in runtime and "iPhone" in x["name"]))')
@@ -103,9 +103,9 @@ jobs:
         run: |
           PIN=$(python3 -c 'import re; from pathlib import Path; s=Path("pubspec.yaml").read_text(); print(re.search(r"flutter_carplay:\s*\n\s*git:\s*\n\s*url: https://github.com/infiniti-money/carplay.git\s*\n\s*ref: ([0-9a-f]{40})", s).group(1))')
           test "$PIN" = b457538fab39aa2cac112bfc4c23cad749ada4dd
-          git clone --no-checkout https://github.com/infiniti-money/carplay.git dependency
-          git -C dependency checkout --detach "$PIN"
-          test "$(git -C dependency rev-parse HEAD)" = "$PIN"
+          git clone --no-checkout https://github.com/infiniti-money/carplay.git flutter_carplay
+          git -C flutter_carplay checkout --detach "$PIN"
+          test "$(git -C flutter_carplay rev-parse HEAD)" = "$PIN"
           echo "Pinned CarPlay commit: $PIN" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-java@v4
         with:
@@ -117,9 +117,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - run: flutter build apk --release
-        working-directory: dependency/example
+        working-directory: flutter_carplay/example
       - name: Run native Android regressions
         run: ./gradlew :flutter_carplay:testDebugUnitTest --console=plain
-        working-directory: dependency/example/android
+        working-directory: flutter_carplay/example/android
