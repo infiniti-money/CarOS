@@ -8,3 +8,6 @@ OSRM steps=true; dịch thao tác phổ biến sang tiếng Việt, thông báo 
 
 ## Tiến độ tuyến và thời gian còn lại
 Chiếu GPS mới (tối đa 10 giây, sai số <=25m) lên đoạn tuyến gần nhất và tỷ lệ độ dài hình học để ước tính quãng đường/thời gian còn lại theo dữ liệu tổng của provider. Không hiển thị nếu đang tính lại tuyến, lệch >80m, GPS cũ hoặc nhiều vị trí gần nhau trên vòng lặp. Thời gian chỉ là ước tính tỷ lệ, không có giao thông trực tiếp hay map matching theo lịch sử. Test tuyến thẳng, điểm cuối, lệch tuyến, đoạn suy biến và vòng lặp; cần GPS/provider thật.
+
+## Bản đồ ban đêm
+Cấu hình CAROS_NIGHT_TILE_URL (HTTPS, chứa {z}/{x}/{y}) và CAROS_NIGHT_TILE_ATTRIBUTION theo giấy phép riêng của nguồn. Chế độ mặc định theo giao diện ứng dụng; có thể chọn ngày/đêm khi chưa dẫn đường. Nếu thiếu nguồn đêm hợp lệ, dùng tile ngày và thông báo rõ; nếu thiếu cả hai, chỉ nền và lớp tọa độ/tuyến. Không đảo màu tile làm sai ký hiệu, không lấy nguồn không được phép, không nhúng khóa bí mật. Bản đồ vẫn 2D, chưa có lưu ngoại tuyến hoặc 3D. Test chọn nguồn và từ chối cấu hình không hợp lệ; cần thử với nhà cung cấp thật.

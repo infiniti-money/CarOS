@@ -3,6 +3,21 @@ import 'package:latlong2/latlong.dart';
 import 'package:infiniti_caros/navigation.dart';
 
 void main() {
+  test('night tiles use independent provider and attribution; fallback is day', () {
+    const day = MapTileSource('https://day.example.org/{z}/{x}/{y}.png', 'Day credit');
+    const night = MapTileSource('https://night.example.org/{z}/{x}/{y}.png', 'Night credit');
+    const invalid = MapTileSource('', '');
+    expect(selectMapTiles(night: true, daySource: day, nightSource: night)?.attribution, 'Night credit');
+    expect(selectMapTiles(night: false, daySource: day, nightSource: night)?.template, day.template);
+    expect(selectMapTiles(night: true, daySource: day, nightSource: invalid)?.template, day.template);
+    expect(selectMapTiles(night: false, daySource: invalid, nightSource: night), isNull);
+  });
+  test('tile providers require HTTPS, placeholders and attribution', () {
+    expect(const MapTileSource('http://example.org/{z}/{x}/{y}.png', 'Credit').valid, isFalse);
+    expect(const MapTileSource('https://example.org/tile.png', 'Credit').valid, isFalse);
+    expect(const MapTileSource('https://example.org/{z}/{x}/{y}.png', '').valid, isFalse);
+    expect(const MapTileSource('https://user:secret@example.org/{z}/{x}/{y}.png', 'Credit').valid, isFalse);
+  });
   test('remaining estimate follows route fraction rather than straight-line distance', () {
     const route = RoutePlan([LatLng(21,105.8), LatLng(21,105.9)], 10000, 600, []);
     final result = estimateRouteProgress(const LatLng(21,105.85), route)!;
