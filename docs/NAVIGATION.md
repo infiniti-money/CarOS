@@ -5,3 +5,6 @@ Nguồn: https://docs.fleaflet.dev/ ; https://project-osrm.org/docs/v5.15.2/api/
 
 ## Giai đoạn chỉ dẫn
 OSRM steps=true; dịch thao tác phổ biến sang tiếng Việt, thông báo gần bước, TTS vi-VN nếu thiết bị hỗ trợ. Tự tính lại tuyến phải bật riêng sau khi xác nhận; lệch tuyến >80m qua 3 mẫu GPS chính xác <=25m, tối thiểu 60 giây giữa các lần. Đây là heuristic thử nghiệm, không có map matching hay xác minh đường thực địa. Không dùng để thay thế biển báo. Nhà cung cấp phải được cấu hình và có quyền sử dụng; chưa có endpoint/key được xác minh. https://project-osrm.org/docs/v5.15.2/api/ ; https://pub.dev/packages/flutter_tts
+
+## Tiến độ tuyến và thời gian còn lại
+Chiếu GPS mới (tối đa 10 giây, sai số <=25m) lên đoạn tuyến gần nhất và tỷ lệ độ dài hình học để ước tính quãng đường/thời gian còn lại theo dữ liệu tổng của provider. Không hiển thị nếu đang tính lại tuyến, lệch >80m, GPS cũ hoặc nhiều vị trí gần nhau trên vòng lặp. Thời gian chỉ là ước tính tỷ lệ, không có giao thông trực tiếp hay map matching theo lịch sử. Test tuyến thẳng, điểm cuối, lệch tuyến, đoạn suy biến và vòng lặp; cần GPS/provider thật.

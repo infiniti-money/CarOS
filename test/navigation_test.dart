@@ -3,6 +3,21 @@ import 'package:latlong2/latlong.dart';
 import 'package:infiniti_caros/navigation.dart';
 
 void main() {
+  test('remaining estimate follows route fraction rather than straight-line distance', () {
+    const route = RoutePlan([LatLng(21,105.8), LatLng(21,105.9)], 10000, 600, []);
+    final result = estimateRouteProgress(const LatLng(21,105.85), route)!;
+    expect(result.remainingMeters, closeTo(5000, 1));
+    expect(result.remainingSeconds, closeTo(300, 1));
+    expect(estimateRouteProgress(const LatLng(21,105.9), route)!.remainingMeters, closeTo(0, 1));
+  });
+  test('off-route, degenerate or ambiguous loop does not show an estimate', () {
+    const route = RoutePlan([LatLng(21,105.8), LatLng(21,105.9)], 10000, 600, []);
+    expect(estimateRouteProgress(const LatLng(21.01,105.85), route), isNull);
+    const repeated = RoutePlan([LatLng(21,105.8), LatLng(21,105.8)], 100, 10, []);
+    expect(estimateRouteProgress(const LatLng(21,105.8), repeated), isNull);
+    const loop = RoutePlan([LatLng(21,105.8), LatLng(21,105.9), LatLng(21,105.8)], 20000, 1200, []);
+    expect(estimateRouteProgress(const LatLng(21,105.85), loop), isNull);
+  });
   test('Vietnamese turns and roundabout exit', () {
     expect(vietnameseTurn('turn','left','Lê Lợi',null), 'Rẽ trái vào Lê Lợi');
     expect(vietnameseTurn('roundabout','','',2), 'Ra khỏi vòng xuyến tại lối thứ 2');

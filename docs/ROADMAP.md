@@ -16,7 +16,7 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 |---|---|---|---|---|
 | 1 | Bản đồ | 2D/3D và ban đêm | Một phần | docs/NAVIGATION.md: bản đồ 2D; chưa xác minh 3D/đêm |
 | 2 | Bản đồ | Dẫn đường giọng Việt | Một phần | docs/NAVIGATION.md; test/navigation_test.dart; cần GPS/TTS thật |
-| 3 | Bản đồ | ETA và quãng đường còn lại | Một phần | docs/NAVIGATION.md: tổng tuyến; cần xác minh cập nhật còn lại |
+| 3 | Bản đồ | ETA và quãng đường còn lại | Một phần | estimateRouteProgress: GPS thật, chiếu lên tuyến và ước tính phần còn lại; cần QA thực địa |
 | 4 | Bản đồ | Đổi tuyến | Một phần | docs/NAVIGATION.md: heuristic opt-in; cần thực địa |
 | 5 | Bản đồ | Lưu vị trí đỗ | Một phần | docs/GPS.md; test/trip_test.dart; cần thiết bị |
 | 6 | Bản đồ | Bản đồ ngoại tuyến | Chưa xác minh | Cần nguồn tile có giấy phép và kiểm thử mất mạng |
