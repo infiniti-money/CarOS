@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'trip.dart';
 import 'entertainment.dart';
 import 'communication.dart';
+import 'navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -76,7 +77,7 @@ class Dashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final entries = <(String, IconData, VoidCallback)>[
-      ('Bản đồ', Icons.map_outlined, () => open(context, 'https://www.google.com/maps')),
+      ('Bản đồ', Icons.map_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen()))),
       ('Apple Maps', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
       ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen()))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
@@ -105,7 +106,7 @@ class Dashboard extends StatelessWidget {
             const SizedBox(height: 12), tiles,
           ])),
           Padding(padding: const EdgeInsets.all(12), child: panel(context, Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            IconButton(tooltip: 'Bản đồ', onPressed: () => open(context, 'https://www.google.com/maps'), icon: const Icon(Icons.map)),
+            IconButton(tooltip: 'Bản đồ', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())), icon: const Icon(Icons.map)),
             IconButton(tooltip: 'Âm nhạc', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())), icon: const Icon(Icons.music_note)),
             IconButton(tooltip: 'Đổi chế độ sáng tối', onPressed: () => onDark(!dark), icon: Icon(dark ? Icons.light_mode : Icons.dark_mode)),
             IconButton(tooltip: 'Trợ lý tiếng Việt', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())), icon: const Icon(Icons.mic_none)),
