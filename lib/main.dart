@@ -7,6 +7,7 @@ import 'smart_bar.dart';
 import 'dashcam.dart';
 import 'launcher_prefs.dart';
 import 'launcher_editor.dart';
+import 'safety_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,7 +117,7 @@ class Dashboard extends StatelessWidget {
     final allEntries = <(String, IconData, VoidCallback)>[
       ('Bản đồ', Icons.map_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen()))),
       ('Bản đồ Apple', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
-      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen()))),
+      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs)))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
       ('Podcast', Icons.podcasts, () => open(context, 'https://podcasts.apple.com/')),
       ('Trợ lý', Icons.mic_none, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen()))),
@@ -148,6 +149,8 @@ class Dashboard extends StatelessWidget {
             const SizedBox(height: 12),
             panel(context, const Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Chế độ độc lập • Chưa kết nối xe'))])),
             const SizedBox(height: 12),
+            OutlinedButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SafetyScreen())), icon: const Icon(Icons.health_and_safety_outlined), label: const Text('An toàn và hỗ trợ')),
+            const SizedBox(height: 12),
             if (split) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(flex: 4, child: trip),
               const SizedBox(width: 12),
@@ -158,7 +161,7 @@ class Dashboard extends StatelessWidget {
             dark: dark, glass: glass, onAction: (action) {
               switch (action) {
                 case 'map': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())); break;
-                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())); break;
+                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs))); break;
                 case 'theme': onDark(!dark); break;
                 case 'voice': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())); break;
                 case 'settings': settings(context); break;

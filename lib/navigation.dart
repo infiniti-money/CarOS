@@ -116,6 +116,59 @@ class RoutePlan {
   final List<TurnStep> steps;
 }
 
+class RouteProgress {
+  const RouteProgress(this.remainingMeters, this.remainingSeconds, this.offsetMeters);
+  final double remainingMeters, remainingSeconds, offsetMeters;
+}
+
+// Project onto each short local segment, then scale remaining geometric length
+// to the provider's distance and duration. This is not traffic-aware map matching.
+RouteProgress? estimateRouteProgress(LatLng fix, RoutePlan route, {double maxOffset = 80}) {
+  if (route.points.length < 2 || !route.meters.isFinite || route.meters < 0 ||
+      !route.seconds.isFinite || route.seconds < 0 ||
+      !fix.latitude.isFinite || !fix.longitude.isFinite ||
+      !maxOffset.isFinite || maxOffset <= 0) {
+    return null;
+  }
+  final scale = 111195.0 * math.cos(fix.latitude * math.pi / 180);
+  double x(LatLng p) {
+    final delta = ((p.longitude - fix.longitude + 540) % 360) - 180;
+    return delta * scale;
+  }
+  double y(LatLng p) => (p.latitude - fix.latitude) * 111195.0;
+  var total = 0.0, best = double.infinity, along = 0.0;
+  var alternate = double.infinity;
+  for (var i = 1; i < route.points.length; i++) {
+    final a = route.points[i - 1], b = route.points[i];
+    final ax = x(a), ay = y(a), dx = x(b) - ax, dy = y(b) - ay;
+    final squared = dx * dx + dy * dy;
+    if (!squared.isFinite) return null;
+    if (squared == 0) continue;
+    final length = math.sqrt(squared);
+    final fraction = (-(ax * dx + ay * dy) / squared).clamp(0.0, 1.0).toDouble();
+    final offset = math.sqrt(math.pow(ax + fraction * dx, 2) + math.pow(ay + fraction * dy, 2));
+    final projected = total + length * fraction;
+    if (offset < best) {
+      // Near-ties far apart along a loop/crossing are ambiguous.
+      if ((projected - along).abs() > 100 && best.isFinite && best - offset <= 10) {
+        alternate = best;
+      } else if (alternate - offset > 10) {
+        alternate = double.infinity;
+      }
+      best = offset;
+      along = projected;
+    } else if ((projected - along).abs() > 100 && offset - best <= 10) {
+      alternate = math.min(alternate, offset);
+    }
+    total += length;
+  }
+  if (total <= 0 || !total.isFinite || best > maxOffset || alternate - best <= 10) {
+    return null;
+  }
+  final remaining = (1 - along / total).clamp(0.0, 1.0).toDouble();
+  return RouteProgress(route.meters * remaining, route.seconds * remaining, best);
+}
+
 RoutePlan parseRoute(Object? data) {
   if (data is! Map || data['code'] != 'Ok' || data['routes'] is! List ||
       (data['routes'] as List).isEmpty) {
@@ -196,12 +249,24 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
   http.Client? requestClient;
   LatLng? position, destination;
   DateTime? fixTime;
+  double? fixAccuracy;
   RoutePlan? route;
   List<Place> places = [];
   bool ready = false, busy = false, follow = true, locating = false;
   String status = 'Bật GPS hoặc chọn điểm đến trên bản đồ.';
   bool get configuredTiles => tileTemplate.startsWith('https://') && tileAttribution.trim().isNotEmpty;
-  bool get fresh => fixTime != null && DateTime.now().difference(fixTime!).inSeconds <= 10;
+  bool get fresh {
+    final time = fixTime;
+    if (time == null) return false;
+    final age = DateTime.now().difference(time);
+    return age >= const Duration(seconds: -2) && age <= const Duration(seconds: 10);
+  }
+
+  RouteProgress? get progress {
+    final current = route, fix = position, accuracy = fixAccuracy;
+    if (current == null || fix == null || !fresh || busy || accuracy == null || accuracy > 25) return null;
+    return estimateRouteProgress(fix, current);
+  }
 
   @override
   void initState() {
@@ -237,7 +302,8 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
             !p.accuracy.isFinite || age > 10 || age < -2) {
           return;
         }
-        setState(() { position = point; fixTime = p.timestamp; status = 'GPS đang hoạt động'; });
+        if (fixTime != null && !p.timestamp.isAfter(fixTime!)) return;
+        setState(() { position = point; fixTime = p.timestamp; fixAccuracy = p.accuracy; status = 'GPS đang hoạt động'; });
         if (ready && follow) map.move(point, 16);
         updateGuidance(point, p.accuracy);
       }, onError: (Object _) {
@@ -245,7 +311,7 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
       });
       watchdog = Timer.periodic(const Duration(seconds: 2), (_) {
         if (mounted && position != null && !fresh) {
-          setState(() { position = null; status = 'GPS mất tín hiệu'; });
+          setState(() { position = null; fixAccuracy = null; status = 'GPS mất tín hiệu'; });
         }
       });
       setState(() => status = 'Đang chờ GPS');
@@ -264,7 +330,7 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
     gps = null;
     watchdog?.cancel();
     watchdog = null;
-    if (mounted) setState(() { position = null; fixTime = null; status = message; });
+    if (mounted) setState(() { position = null; fixTime = null; fixAccuracy = null; status = message; });
     await current?.cancel();
   }
 
@@ -403,7 +469,9 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final remaining = progress;
+    return Scaffold(
     appBar: AppBar(title: const Text('Bản đồ & dẫn đường')),
     body: Column(children: [
       Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(status)),
@@ -415,7 +483,8 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
           if (ready) map.move(position!, 16);
         }, child: const Text('Theo vị trí')),
       ]),
-      if (route != null) Text('${(route!.meters / 1000).toStringAsFixed(1)} km • ${(route!.seconds / 60).ceil()} phút dự kiến'),
+      if (route != null) Text('Tổng tuyến: ${(route!.meters / 1000).toStringAsFixed(1)} km • ${(route!.seconds / 60).ceil()} phút dự kiến'),
+      if (route != null) Text(remaining == null ? 'Còn lại: chưa đủ GPS hoặc vị trí không rõ trên tuyến' : 'Còn lại khoảng ${(remaining.remainingMeters / 1000).toStringAsFixed(1)} km • ${(remaining.remainingSeconds / 60).ceil()} phút (ước tính, không có giao thông trực tiếp)'),
       if (route != null) Wrap(spacing: 8, children: [
         TextButton(onPressed: guiding ? () { setState(() { guiding = false; reroute = false; }); unawaited(silence()); } : startGuidance, child: Text(guiding ? 'Dừng dẫn đường' : 'Bắt đầu dẫn đường')),
         FilterChip(label: const Text('Giọng Việt'), selected: voice, onSelected: (v) { setState(() => voice = v); if (!v) unawaited(silence()); }),
@@ -445,5 +514,6 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
       if (configuredTiles) Text(tileAttribution, style: const TextStyle(fontSize: 11)),
       const Padding(padding: EdgeInsets.all(6), child: Text('Dẫn đường thử nghiệm, luôn tuân thủ biển báo. Chỉ thao tác khi đã đỗ xe.')),
     ]),
-  );
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart' as sharing;
 import 'dashcam_policy.dart';
 import 'face_control.dart';
 
@@ -11,6 +12,20 @@ const maxClips = 20;
 const clipDuration = Duration(minutes: 5);
 
 bool isDashClip(String name) => RegExp(r'^trip_[0-9]+\.mp4$').hasMatch(name);
+
+// Interrupted copies are not valid video clips. Keep nonempty parts available
+// for explicit review; only discard exact app-owned staging filenames.
+Future<List<File>> interruptedClips(Directory directory) async {
+  final result = <File>[];
+  await for (final entry in directory.list(followLinks: false)) {
+    final name = entry.uri.pathSegments.last;
+    if (entry is File && name.endsWith('.part') &&
+        isDashClip(name.substring(0, name.length - 5))) {
+      result.add(entry);
+    }
+  }
+  return result;
+}
 
 // Publish a clip only after the temporary file has been completely copied.
 Future<File> saveDashClip(Directory directory, String name,
@@ -43,6 +58,7 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
   bool releaseRequested = false;
   String status = 'Bật camera khi đã đỗ xe. Không ghi âm.';
   List<File> clips = [];
+  List<File> interrupted = [];
   Set<String> protectedNames = {};
   int libraryBytes = 0;
   bool loop = false, protectCurrent = false, libraryReady = false;
@@ -77,9 +93,11 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       final rows = await dir.list(followLinks: false).where((e) => e is File && isDashClip(e.uri.pathSegments.last)).cast<File>().toList();
       rows.sort((a,b) => b.path.compareTo(a.path));
       final records = await readLibrary(dir);
+      final parts = await interruptedClips(dir);
       if (mounted) {
         setState(() {
         clips = rows;
+        interrupted = parts;
         protectedNames = records.where((c) => c.locked).map((c) => c.name).toSet();
         libraryBytes = records.fold(0, (sum, c) => sum + c.bytes);
         libraryReady = true;
@@ -208,6 +226,35 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> discardInterrupted() async {
+    if (busy || recording || releasing || camera != null || interrupted.isEmpty) return;
+    setState(() => busy = true);
+    try {
+      final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: const Text('Xóa bản sao chưa hoàn tất?'),
+        content: const Text('Các tệp tạm có thể chứa dữ liệu video chưa hoàn chỉnh. Không xóa video đã lưu hoặc khóa.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa tệp tạm')),
+        ],
+      ));
+      if (!mounted || ok != true || !foreground || releaseRequested) return;
+      final dir = await directory();
+      for (final file in await interruptedClips(dir)) {
+        if (await FileSystemEntity.type(file.path, followLinks: false) == FileSystemEntityType.file) {
+          await file.delete();
+        }
+      }
+      await refresh();
+      if (mounted) setState(() => status = 'Đã dọn các bản sao chưa hoàn tất');
+    } catch (_) {
+      if (mounted) setState(() => status = 'Không dọn được toàn bộ tệp tạm');
+    } finally {
+      if (mounted) setState(() => busy = false);
+      if (mounted && releaseRequested) unawaited(release());
+    }
+  }
+
   Future<void> toggleProtection(File file) async {
     if (busy || recording || releasing) return;
     setState(() => busy = true);
@@ -270,6 +317,8 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
         if (recording) OutlinedButton.icon(onPressed: busy ? null : () => setState(() => protectCurrent = !protectCurrent), icon: Icon(protectCurrent ? Icons.lock : Icons.lock_open), label: Text(protectCurrent ? 'Đoạn hiện tại đã được đánh dấu' : 'Bảo vệ đoạn đang quay')),
         Text('Kho video: ${(libraryBytes / 1048576).toStringAsFixed(1)} / 1024 MiB • ${clips.length}/20 đoạn'),
         const Text('Mỗi đoạn tối đa 5 phút. Dừng khi hết dung lượng; giới hạn áp dụng cho video đã lưu, không gồm tệp đang ghi. Chỉ xem hoặc xóa khi đã đỗ xe.'),
+        if (interrupted.isNotEmpty)
+          ListTile(leading: const Icon(Icons.warning_amber), title: Text('Có ${interrupted.length} tệp ghi chưa hoàn tất'), subtitle: const Text('Không phát như video hợp lệ; chỉ dọn khi bạn xác nhận.'), trailing: TextButton(onPressed: busy || recording || releasing || camera != null ? null : discardInterrupted, child: const Text('Dọn tệp'))),
         for (final clip in clips)
           ListTile(title: Text(clip.uri.pathSegments.last), leading: const Icon(Icons.movie),
             onTap: recording || busy || releasing ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ClipScreen(file: clip))),
@@ -289,12 +338,13 @@ class ClipScreen extends StatefulWidget {
   State<ClipScreen> createState() => _ClipScreenState();
 }
 
-class _ClipScreenState extends State<ClipScreen> {
+class _ClipScreenState extends State<ClipScreen> with WidgetsBindingObserver {
   late final VideoPlayerController player;
-  bool ready = false, failed = false;
+  bool ready = false, failed = false, sharingFile = false;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     player = VideoPlayerController.file(widget.file);
     unawaited(load());
   }
@@ -306,11 +356,43 @@ class _ClipScreenState extends State<ClipScreen> {
       if (mounted) setState(() => failed = true);
     }
   }
+  Future<void> shareClip(BuildContext anchor) async {
+    if (sharingFile || !ready) return;
+    final box = anchor.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final origin = box.localToGlobal(Offset.zero) & box.size;
+    setState(() => sharingFile = true);
+    try {
+      await player.pause();
+      if (!mounted || !await widget.file.exists()) return;
+      if (!mounted) return;
+      await sharing.SharePlus.instance.share(sharing.ShareParams(
+        files: [sharing.XFile(widget.file.path, mimeType: 'video/mp4')],
+        sharePositionOrigin: origin,
+      ));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể mở bảng chia sẻ video')));
+    } finally {
+      if (mounted) setState(() => sharingFile = false);
+    }
+  }
+
   @override
-  void dispose() { unawaited(player.dispose()); super.dispose(); }
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed && ready) {
+      unawaited(player.pause().catchError((Object _) {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(player.dispose());
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Xem video')),
+    appBar: AppBar(title: const Text('Xem video'), actions: [Builder(builder: (anchor) => IconButton(tooltip: 'Chia sẻ video', onPressed: ready && !sharingFile ? () => shareClip(anchor) : null, icon: const Icon(Icons.share)))]),
     body: Center(child: failed ? const Text('Không đọc được video') : !ready ? const CircularProgressIndicator() :
       Column(mainAxisSize: MainAxisSize.min, children: [
         AspectRatio(aspectRatio: player.value.aspectRatio, child: VideoPlayer(player)),

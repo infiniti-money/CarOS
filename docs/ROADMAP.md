@@ -16,7 +16,7 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 |---|---|---|---|---|
 | 1 | Bản đồ | 2D/3D và ban đêm | Một phần | docs/NAVIGATION.md: bản đồ 2D; chưa xác minh 3D/đêm |
 | 2 | Bản đồ | Dẫn đường giọng Việt | Một phần | docs/NAVIGATION.md; test/navigation_test.dart; cần GPS/TTS thật |
-| 3 | Bản đồ | ETA và quãng đường còn lại | Một phần | docs/NAVIGATION.md: tổng tuyến; cần xác minh cập nhật còn lại |
+| 3 | Bản đồ | ETA và quãng đường còn lại | Một phần | estimateRouteProgress: GPS thật, chiếu lên tuyến và ước tính phần còn lại; cần QA thực địa |
 | 4 | Bản đồ | Đổi tuyến | Một phần | docs/NAVIGATION.md: heuristic opt-in; cần thực địa |
 | 5 | Bản đồ | Lưu vị trí đỗ | Một phần | docs/GPS.md; test/trip_test.dart; cần thiết bị |
 | 6 | Bản đồ | Bản đồ ngoại tuyến | Chưa xác minh | Cần nguồn tile có giấy phép và kiểm thử mất mạng |
@@ -31,7 +31,7 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 15 | Giải trí | Radio/podcast | Một phần | docs/ENTERTAINMENT.md; test/entertainment_test.dart |
 | 16 | Giải trí | Nhạc nền | Chưa xác minh | docs/ENTERTAINMENT.md: chưa hỗ trợ |
 | 17 | Giải trí | Điều khiển màn hình khóa | Chưa xác minh | Cần media session và test thật |
-| 18 | Giải trí | Khôi phục phiên phát | Chưa xác minh | Cần lưu phiên và test |
+| 18 | Giải trí | Khôi phục phiên phát | Một phần | playback_session.dart: lưu/khôi phục thủ công, không tự phát; cần CI và kiểm thử audio thiết bị |
 | 19 | Trợ lý | Nhận diện giọng Việt | Một phần | docs/COMMUNICATION.md; cần micro/locale thật |
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
 | 21 | Trợ lý | Gọi điện/đọc thông báo | Một phần | docs/COMMUNICATION.md: tel sau xác nhận; chưa đọc thông báo |
@@ -47,11 +47,11 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 31 | Camera | Quản lý dung lượng | Một phần | docs/DASHCAM.md; test/dashcam_test.dart; cần test dung lượng thật |
 | 32 | Camera | Ghi vòng lặp | Một phần | docs/DASHCAM.md: foreground; cần thiết bị |
 | 33 | Camera | Khóa video sự kiện | Một phần | docs/DASHCAM.md: marker bảo vệ thủ công |
-| 34 | Camera | Xuất/chia sẻ | Chưa xác minh | Cần luồng xuất và quyền |
-| 35 | Camera | Khôi phục gián đoạn | Một phần | docs/DASHCAM.md: staging/lifecycle; chưa crash-proof |
+| 34 | Camera | Xuất/chia sẻ | Một phần | Dash Cam: bảng chia sẻ hệ điều hành, thao tác rõ ràng; cần QA iOS/Android |
+| 35 | Camera | Khôi phục gián đoạn | Một phần | Nhận diện tệp .part và dọn có xác nhận; chưa khôi phục video hỏng/crash-proof |
 | 36 | Camera | Quyền riêng tư | Một phần | docs/DASHCAM.md: lưu riêng, không upload; cần kiểm tra quyền |
-| 37 | An toàn | SOS thủ công | Chưa xác minh | Cần luồng xác nhận và test |
-| 38 | An toàn | Chia sẻ vị trí tự nguyện | Chưa xác minh | Cần consent và thu hồi |
+| 37 | An toàn | SOS thủ công | Một phần | safety_screen.dart: mở trình gọi sau xác nhận, không tự gọi; cần thiết bị |
+| 38 | An toàn | Chia sẻ vị trí tự nguyện | Một phần | safety_policy.dart: vị trí một lần, xem trước/sao chép tự nguyện, không tự gửi; cần thiết bị |
 | 39 | An toàn | Hạn chế thao tác khi lái | Một phần | docs/DASHCAM.md: gate Face Control; cần toàn app |
 | 40 | An toàn | Quản lý quyền | Một phần | docs/GPS.md; docs/COMMUNICATION.md; cần test từ chối/thu hồi |
 | 41 | An toàn | Bảo mật token | Chưa xác minh | Cần secure storage khi có OAuth |

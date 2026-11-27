@@ -4,6 +4,16 @@ import 'package:infiniti_caros/dashcam.dart';
 import 'package:infiniti_caros/dashcam_policy.dart';
 
 void main() {
+  test('interrupted copies are listed without touching complete or unrelated files', () async {
+    final dir = await Directory.systemTemp.createTemp('caros_parts_');
+    addTearDown(() => dir.delete(recursive: true));
+    for (final name in ['trip_1.mp4.part', 'trip_2.mp4', 'trip_2.mp4.lock', 'other.part']) {
+      await File('${dir.path}/$name').writeAsBytes([1]);
+    }
+    final parts = await interruptedClips(dir);
+    expect(parts.map((file) => file.uri.pathSegments.last), ['trip_1.mp4.part']);
+    expect(await dir.list().length, 4);
+  });
   test('loop only evicts oldest unlocked videos', () {
     const clips = [ClipRecord('protected', 60, true, 1),
       ClipRecord('new', 20, false, 3), ClipRecord('old', 20, false, 2)];
