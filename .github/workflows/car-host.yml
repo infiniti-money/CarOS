@@ -6,6 +6,7 @@ on:
       - 'lib/car_connection.dart'
       - 'native/car/**'
       - 'scripts/configure_car_host.py'
+      - 'scripts/configure_ios_floor.py'
       - 'pubspec.yaml'
       - '.github/workflows/car-host.yml'
   workflow_dispatch:
@@ -44,6 +45,7 @@ jobs:
           channel: stable
       - run: flutter create --platforms=ios --org com.infinitimoney --project-name infiniti_caros .
       - run: python3 scripts/configure_location.py ios
+      - run: python3 scripts/configure_ios_floor.py
       - run: python3 scripts/configure_car_host.py ios --simulator
       - run: flutter pub get
       - run: flutter build ios --simulator --debug --target lib/car_main.dart --dart-define=CAROS_CAR_HOST=true

@@ -14,3 +14,6 @@ HostValidator: https://developer.android.com/reference/androidx/car/app/CarAppSe
 Source: https://github.com/infiniti-money/carplay
 
 Future integration: reconcile shared engine registration with the pending SwiftUI glass and FaceControl bridges before combining branches. Test host connect/disconnect, root updates, phone cold launch, valid signatures, unknown hosts, signed iPhone and actual head unit. No claim of production support until these pass.
+
+## iOS build floor
+CI initially failed because flutter_carplay requires iOS 14.0 or later while the generated app was 13.0. Both CI workflows now run scripts/configure_ios_floor.py after generating platform scaffolds. This raises only lower deployment targets and preserves higher ones.

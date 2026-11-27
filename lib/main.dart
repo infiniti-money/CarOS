@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'trip.dart';
 import 'entertainment.dart';
+import 'communication.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,7 +59,7 @@ class Dashboard extends StatelessWidget {
         const ListTile(title: Text('Cài đặt'), subtitle: Text('Điều chỉnh khi đã đỗ xe')),
         SwitchListTile(title: const Text('Chế độ tối'), value: localDark, onChanged: (v) { refresh(() => localDark = v); onDark(v); }),
         SwitchListTile(title: const Text('Hiệu ứng kính'), value: localGlass, onChanged: (v) { refresh(() => localGlass = v); onGlass(v); }),
-        const ListTile(title: Text('Infiniti CarOS 2.0'), subtitle: Text('Bản nền tảng • Chưa kết nối dữ liệu xe')),
+        const ListTile(title: Text('Infiniti CarOS 2.3'), subtitle: Text('Bản nền tảng • Chưa kết nối dữ liệu xe')),
       ])));
     });
   }
@@ -80,6 +81,9 @@ class Dashboard extends StatelessWidget {
       ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen()))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
       ('Podcast', Icons.podcasts, () => open(context, 'https://podcasts.apple.com/')),
+      ('Trợ lý', Icons.mic_none, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen()))),
+      ('Điện thoại', Icons.phone_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen(initialTab: 1)))),
+      ('Lịch', Icons.calendar_month, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen(initialTab: 2)))),
       ('Cài đặt', Icons.settings_outlined, () => settings(context)),
     ];
     return Scaffold(body: DecoratedBox(
@@ -104,6 +108,7 @@ class Dashboard extends StatelessWidget {
             IconButton(tooltip: 'Bản đồ', onPressed: () => open(context, 'https://www.google.com/maps'), icon: const Icon(Icons.map)),
             IconButton(tooltip: 'Âm nhạc', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())), icon: const Icon(Icons.music_note)),
             IconButton(tooltip: 'Đổi chế độ sáng tối', onPressed: () => onDark(!dark), icon: Icon(dark ? Icons.light_mode : Icons.dark_mode)),
+            IconButton(tooltip: 'Trợ lý tiếng Việt', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())), icon: const Icon(Icons.mic_none)),
             IconButton(tooltip: 'Cài đặt', onPressed: () => settings(context), icon: const Icon(Icons.settings)),
           ]))),
         ]);

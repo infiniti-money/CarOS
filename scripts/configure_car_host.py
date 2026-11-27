@@ -13,7 +13,6 @@ NS = 'http://schemas.android.com/apk/res/android'
 ET.register_namespace('android', NS)
 A = '{' + NS + '}'
 KEY = 'com.apple.developer.carplay-driving-task'
-BUNDLE = 'com.infinitimoney.infinitiCaros'
 
 def verify_profile(profile, bundle):
     data = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(profile)]))
@@ -31,10 +30,12 @@ def verify_profile(profile, bundle):
         raise ValueError('Profile does not match bundle and approved driving-task entitlement')
 
 def ios(args):
+    from configure_ios_floor import configure_ios_floor
     if not args.simulator:
         if not args.profile or not args.bundle_id:
             raise ValueError('Device build requires --profile and --bundle-id')
         verify_profile(args.profile, args.bundle_id)
+    configure_ios_floor()
     runner = Path('ios/Runner')
     plist = runner / 'Info.plist'
     data = plistlib.loads(plist.read_bytes())
