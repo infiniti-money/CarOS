@@ -4,6 +4,7 @@ import 'entertainment.dart';
 import 'communication.dart';
 import 'navigation.dart';
 import 'smart_bar.dart';
+import 'dashcam.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,7 +66,7 @@ class Dashboard extends StatelessWidget {
         const ListTile(title: Text('Cài đặt'), subtitle: Text('Điều chỉnh khi đã đỗ xe')),
         SwitchListTile(title: const Text('Chế độ tối'), value: localDark, onChanged: (v) { refresh(() => localDark = v); onDark(v); }),
         SwitchListTile(title: const Text('Hiệu ứng kính'), value: localGlass, onChanged: (v) { refresh(() => localGlass = v); onGlass(v); }),
-        const ListTile(title: Text('Infiniti CarOS 2.3'), subtitle: Text('Bản nền tảng • Chưa kết nối dữ liệu xe')),
+        const ListTile(title: Text('Infiniti CarOS 2.4'), subtitle: Text('Bản nền tảng • Chưa kết nối dữ liệu xe')),
       ])));
     });
   }
@@ -90,6 +91,7 @@ class Dashboard extends StatelessWidget {
       ('Trợ lý', Icons.mic_none, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen()))),
       ('Điện thoại', Icons.phone_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen(initialTab: 1)))),
       ('Lịch', Icons.calendar_month, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen(initialTab: 2)))),
+      ('Camera hành trình', Icons.videocam_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DashCamScreen()))),
       ('Cài đặt', Icons.settings_outlined, () => settings(context)),
     ];
     return Scaffold(body: DecoratedBox(

@@ -1,7 +1,7 @@
 name: infiniti_caros
 description: Vietnamese independent driving dashboard.
 publish_to: none
-version: 2.3.0+4
+version: 2.4.0+5
 environment:
   sdk: '>=3.5.0 <4.0.0'
 dependencies:
@@ -21,6 +21,9 @@ dependencies:
   flutter_map: 8.2.2
   latlong2: ^0.9.1
   flutter_tts: 4.2.5
+  camera: 0.12.2
+  path_provider: 2.1.5
+  video_player: 2.14.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

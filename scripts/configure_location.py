@@ -9,7 +9,7 @@ if sys.argv[1] == 'android':
     ET.register_namespace('android', ns)
     tree = ET.parse(path)
     root = tree.getroot()
-    for permission in ('ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'INTERNET', 'RECORD_AUDIO', 'READ_CONTACTS', 'READ_CALENDAR', 'WRITE_CALENDAR'):
+    for permission in ('ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'INTERNET', 'RECORD_AUDIO', 'CAMERA', 'READ_CONTACTS', 'READ_CALENDAR', 'WRITE_CALENDAR'):
         name = 'android.permission.' + permission
         if not any(e.get('{'+ns+'}name') == name for e in root.findall('uses-permission')):
             root.insert(0, ET.Element('uses-permission', {'{'+ns+'}name': name}))
@@ -30,6 +30,7 @@ elif sys.argv[1] == 'ios':
     path = Path('ios/Runner/Info.plist')
     data = plistlib.loads(path.read_bytes())
     data['NSLocationWhenInUseUsageDescription'] = 'Infiniti CarOS dùng vị trí khi bạn bắt đầu hành trình để ước tính tốc độ và quãng đường.'
+    data['NSCameraUsageDescription'] = 'Quay video hành trình khi bạn chủ động bật camera.'
     data['NSMicrophoneUsageDescription'] = 'Dùng micro khi bạn bật trợ lý giọng nói.'
     data['NSSpeechRecognitionUsageDescription'] = 'Nhận dạng lệnh tiếng Việt khi bạn yêu cầu.'
     data['NSContactsUsageDescription'] = 'Hiển thị danh bạ để bạn chọn người gọi.'
