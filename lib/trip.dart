@@ -130,6 +130,40 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
     if (mounted) setState(() => status = 'Không thể mở bản đồ');
   }
 
+  Future<void> saveParking() async {
+    final point = last;
+    if (point == null || speed == null || speed! > 2) {
+      setState(() => status = 'Hãy dừng xe và chờ GPS chính xác');
+      return;
+    }
+    final saved = await widget.prefs.setString('parking_location', jsonEncode({
+      'lat': point.latitude, 'lon': point.longitude,
+      'saved': DateTime.now().toIso8601String(),
+    }));
+    if (mounted) setState(() => status = saved ? 'Đã lưu vị trí đỗ xe' : 'Không lưu được vị trí');
+  }
+
+  Future<void> openParking() async {
+    final raw = widget.prefs.getString('parking_location');
+    if (raw == null) {
+      setState(() => status = 'Chưa lưu vị trí đỗ xe');
+      return;
+    }
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final uri = Uri.https('www.google.com', '/maps/search/', {
+        'api': '1', 'query': '${data['lat']},${data['lon']}',
+      });
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {}
+    if (mounted) setState(() => status = 'Không thể mở vị trí đỗ xe');
+  }
+
+  Future<void> clearParking() async {
+    final removed = await widget.prefs.remove('parking_location');
+    if (mounted) setState(() => status = removed ? 'Đã xóa vị trí đỗ xe' : 'Không xóa được vị trí');
+  }
+
   void showHistory() {
     showModalBottomSheet<void>(context: context, builder: (context) => SafeArea(child: ListView(children: [
       const ListTile(title: Text('Lịch sử hành trình'), subtitle: Text('Chỉ lưu tổng quãng đường và thời gian trên thiết bị')),
@@ -163,6 +197,9 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
       FilledButton(onPressed: busy ? null : started == null ? start : stop, child: Text(started == null ? 'Bắt đầu' : 'Kết thúc')),
       OutlinedButton(onPressed: map, child: const Text('Mở bản đồ')),
       TextButton(onPressed: showHistory, child: const Text('Lịch sử')),
+      OutlinedButton(onPressed: busy ? null : saveParking, child: const Text('Lưu chỗ đỗ')),
+      TextButton(onPressed: openParking, child: const Text('Tìm xe')),
+      TextButton(onPressed: clearParking, child: const Text('Xóa chỗ đỗ')),
     ]),
   ]);
 }
