@@ -150,10 +150,12 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     setState(() => saving = true);
     try {
       final ok = await widget.prefs.setString(playbackSessionKey, validated.encode());
-      if (mounted) setState(() {
-        if (ok) saved = validated;
-        message = ok ? 'Đã lưu phiên trên thiết bị' : 'Không lưu được phiên';
-      });
+      if (mounted) {
+        setState(() {
+          if (ok) saved = validated;
+          message = ok ? 'Đã lưu phiên trên thiết bị' : 'Không lưu được phiên';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => message = 'Không lưu được phiên');
     } finally {
@@ -166,10 +168,12 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     setState(() => saving = true);
     try {
       final ok = await widget.prefs.remove(playbackSessionKey);
-      if (mounted) setState(() {
-        if (ok) saved = null;
-        message = ok ? 'Đã xóa phiên đã lưu' : 'Không xóa được phiên';
-      });
+      if (mounted) {
+        setState(() {
+          if (ok) saved = null;
+          message = ok ? 'Đã xóa phiên đã lưu' : 'Không xóa được phiên';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => message = 'Không xóa được phiên');
     } finally {
