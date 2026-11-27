@@ -1,0 +1,49 @@
+name: Car host prototype
+on:
+  pull_request:
+    paths:
+      - 'lib/car_main.dart'
+      - 'lib/car_connection.dart'
+      - 'native/car/**'
+      - 'scripts/configure_car_host.py'
+      - 'pubspec.yaml'
+      - '.github/workflows/car-host.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: car-host-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+      - run: flutter create --platforms=android --org com.infinitimoney --project-name infiniti_caros .
+      - run: rm -f test/widget_test.dart
+      - run: python3 scripts/configure_location.py android
+      - run: python3 scripts/configure_car_host.py android --development
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --debug --target lib/car_main.dart --dart-define=CAROS_CAR_HOST=true
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo xcode-select --switch /Applications/Xcode_26.5.app
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+      - run: flutter create --platforms=ios --org com.infinitimoney --project-name infiniti_caros .
+      - run: python3 scripts/configure_location.py ios
+      - run: python3 scripts/configure_car_host.py ios --simulator
+      - run: flutter pub get
+      - run: flutter build ios --simulator --debug --target lib/car_main.dart --dart-define=CAROS_CAR_HOST=true
