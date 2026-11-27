@@ -218,11 +218,13 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
             // Do not delete the source if even recovery storage failed.
           }
         }
-        if (mounted) setState(() => status = published
+        if (mounted) {
+          setState(() => status = published
           ? 'Đã lưu video; dừng ghi vòng lặp vì lỗi dọn kho.'
           : recovered
             ? 'Chưa đưa video vào thư viện; đã giữ bản ghi tạm để xem xét.'
             : 'Không lưu được video; không chủ động xóa tệp gốc. Có thể mất khi hệ điều hành dọn cache.');
+        }
       } finally {
         if (published || recovered) {
           try { if (await source.exists()) await source.delete(); } catch (_) {}
