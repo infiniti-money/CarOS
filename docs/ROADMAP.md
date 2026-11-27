@@ -14,7 +14,7 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 
 | ID | Nhóm | Tiêu chí | Trạng thái | Bằng chứng hiện có / việc còn thiếu |
 |---|---|---|---|---|
-| 1 | Bản đồ | 2D/3D và ban đêm | Một phần | docs/NAVIGATION.md: bản đồ 2D; chưa xác minh 3D/đêm |
+| 1 | Bản đồ | 2D/3D và ban đêm | Một phần | Bản đồ 2D, tile ngày/đêm theo cấu hình và giao diện; chưa có 3D; cần provider/QA |
 | 2 | Bản đồ | Dẫn đường giọng Việt | Một phần | docs/NAVIGATION.md; test/navigation_test.dart; cần GPS/TTS thật |
 | 3 | Bản đồ | ETA và quãng đường còn lại | Một phần | estimateRouteProgress: GPS thật, chiếu lên tuyến và ước tính phần còn lại; cần QA thực địa |
 | 4 | Bản đồ | Đổi tuyến | Một phần | docs/NAVIGATION.md: heuristic opt-in; cần thực địa |
@@ -29,8 +29,8 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 13 | Giải trí | Spotify API/OAuth | Vướng | docs/ENTERTAINMENT.md: cần Client ID/redirect và tài khoản hợp lệ |
 | 14 | Giải trí | Apple Music/MusicKit | Vướng | docs/ENTERTAINMENT.md: cần quyền MusicKit và thiết bị ký |
 | 15 | Giải trí | Radio/podcast | Một phần | docs/ENTERTAINMENT.md; test/entertainment_test.dart |
-| 16 | Giải trí | Nhạc nền | Chưa xác minh | docs/ENTERTAINMENT.md: chưa hỗ trợ |
-| 17 | Giải trí | Điều khiển màn hình khóa | Chưa xác minh | Cần media session và test thật |
+| 16 | Giải trí | Nhạc nền | Một phần | Bản điện thoại: just_audio_background, service Android / iOS audio mode; rời màn hình Giải trí dừng; cần thiết bị |
+| 17 | Giải trí | Điều khiển màn hình khóa | Một phần | Bản điện thoại: MediaItem và remote controls từ just_audio_background; cần QA màn hình khóa |
 | 18 | Giải trí | Khôi phục phiên phát | Một phần | playback_session.dart: lưu/khôi phục thủ công, không tự phát; cần CI và kiểm thử audio thiết bị |
 | 19 | Trợ lý | Nhận diện giọng Việt | Một phần | docs/COMMUNICATION.md; cần micro/locale thật |
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
@@ -53,14 +53,17 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 37 | An toàn | SOS thủ công | Một phần | safety_screen.dart: mở trình gọi sau xác nhận, không tự gọi; cần thiết bị |
 | 38 | An toàn | Chia sẻ vị trí tự nguyện | Một phần | safety_policy.dart: vị trí một lần, xem trước/sao chép tự nguyện, không tự gửi; cần thiết bị |
 | 39 | An toàn | Hạn chế thao tác khi lái | Một phần | docs/DASHCAM.md: gate Face Control; cần toàn app |
-| 40 | An toàn | Quản lý quyền | Một phần | docs/GPS.md; docs/COMMUNICATION.md; cần test từ chối/thu hồi |
+| 40 | An toàn | Quản lý quyền | Một phần | PrivacyScreen mở cài đặt ứng dụng; cần test từ chối/thu hồi quyền trên thiết bị |
 | 41 | An toàn | Bảo mật token | Chưa xác minh | Cần secure storage khi có OAuth |
-| 42 | An toàn | Xóa/xuất dữ liệu cá nhân | Một phần | docs/GPS.md: xóa tọa độ; cần toàn bộ dữ liệu |
-| 43 | Hệ thống | Hồi quy toàn bộ | Một phần | CI main 45964311888 đạt; chưa đủ thiết bị thật |
+| 42 | An toàn | Xóa/xuất dữ liệu cá nhân | Một phần | Xuất/xóa có chọn lọc lịch sử, chỗ đỗ, phiên phát; video quản lý riêng; cần QA |
+| 43 | Hệ thống | Hồi quy toàn bộ | Một phần | PR #24: 7 job CI đạt (45983606954, 45983607041, 45983607587); main sau merge cần CI và QA thiết bị |
 | 44 | Hệ thống | RAM/CPU/pin/nhiệt | Vướng | Cần đo thiết bị thật |
 | 45 | Hệ thống | Dependency/bảo mật | Một phần | CI thư viện 45958039759 đạt; cần audit bảo mật |
 | 46 | Hệ thống | APK/IPA ký hợp lệ | Vướng | Cần chứng chỉ và profile được cấp quyền |
 | 47 | Hệ thống | Cập nhật/rollback | Chưa xác minh | Cần quy trình và kiểm thử |
-| 48 | Hệ thống | Workflow kiểm tra 15 phút | Một phần | .github/workflows/ci-monitor.yml; PR run 45944847971 đạt; chưa thấy schedule run |
+| 48 | Hệ thống | Workflow kiểm tra 15 phút | Một phần | Monitor mở rộng app/dependency/host; PR #27 run 45984492091 đạt; chưa thấy schedule run |
 
 Monitor cấu hình cron `7,22,37,52 * * * *` UTC; chạy lịch có thể trễ. Không coi monitor xanh là CI build xanh. Không phát hành chính thức khi chưa được cấp quyền.
+
+## Tích hợp tiếp theo
+Main `d22697e592a3a4be06d528b2fa7995bc6eeaa109` chứa PR #24 và toàn bộ ancestry #21–23; ba PR cũ đã đóng. PR #26 tích hợp thêm #25 (quyền riêng tư) và #27 (CI Monitor) với lịch sử commit nguyên vẹn, cần CI mới trên main. Chưa nghiệm thu đủ 48 tiêu chí; không tính PR xanh thay cho kiểm thử thiết bị thực tế.

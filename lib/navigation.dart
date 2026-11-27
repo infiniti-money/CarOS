@@ -10,6 +10,37 @@ import 'package:latlong2/latlong.dart';
 
 const tileTemplate = String.fromEnvironment('CAROS_TILE_URL');
 const tileAttribution = String.fromEnvironment('CAROS_TILE_ATTRIBUTION');
+const nightTileTemplate = String.fromEnvironment('CAROS_NIGHT_TILE_URL');
+const nightTileAttribution = String.fromEnvironment('CAROS_NIGHT_TILE_ATTRIBUTION');
+
+enum MapAppearance { system, day, night }
+
+class MapTileSource {
+  const MapTileSource(this.template, this.attribution);
+  final String template, attribution;
+
+  bool get valid {
+    if (!template.contains('{z}') || !template.contains('{x}') ||
+        !template.contains('{y}') || attribution.trim().isEmpty) {
+      return false;
+    }
+    final uri = Uri.tryParse(template.replaceAll('{z}', '1')
+        .replaceAll('{x}', '1').replaceAll('{y}', '1'));
+    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty && !uri.hasFragment;
+  }
+}
+
+MapTileSource? selectMapTiles({
+  required bool night,
+  required MapTileSource daySource,
+  required MapTileSource nightSource,
+}) {
+  if (night && nightSource.valid) return nightSource;
+  if (daySource.valid) return daySource;
+  return null;
+}
+
 const searchEndpoint = String.fromEnvironment('CAROS_SEARCH_URL');
 const routeEndpoint = String.fromEnvironment('CAROS_ROUTE_URL');
 
@@ -254,7 +285,7 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
   List<Place> places = [];
   bool ready = false, busy = false, follow = true, locating = false;
   String status = 'Bật GPS hoặc chọn điểm đến trên bản đồ.';
-  bool get configuredTiles => tileTemplate.startsWith('https://') && tileAttribution.trim().isNotEmpty;
+  MapAppearance appearance = MapAppearance.system;
   bool get fresh {
     final time = fixTime;
     if (time == null) return false;
@@ -471,6 +502,11 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
   @override
   Widget build(BuildContext context) {
     final remaining = progress;
+    final night = appearance == MapAppearance.night ||
+        (appearance == MapAppearance.system && Theme.of(context).brightness == Brightness.dark);
+    const daySource = MapTileSource(tileTemplate, tileAttribution);
+    const nightSource = MapTileSource(nightTileTemplate, nightTileAttribution);
+    final tiles = selectMapTiles(night: night, daySource: daySource, nightSource: nightSource);
     return Scaffold(
     appBar: AppBar(title: const Text('Bản đồ & dẫn đường')),
     body: Column(children: [
@@ -498,20 +534,32 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
       if (places.isNotEmpty) SizedBox(height: 100, child: ListView(children: [
         for (final place in places) ListTile(title: Text(place.name, maxLines: 2), onTap: () => choose(place.point)),
       ])),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Text('Bản đồ: '),
+        DropdownButton<MapAppearance>(value: appearance, items: const [
+          DropdownMenuItem(value: MapAppearance.system, child: Text('Theo giao diện')),
+          DropdownMenuItem(value: MapAppearance.day, child: Text('Ban ngày')),
+          DropdownMenuItem(value: MapAppearance.night, child: Text('Ban đêm')),
+        ], onChanged: guiding ? null : (value) {
+          if (value != null) setState(() => appearance = value);
+        }),
+      ]),
       Expanded(child: FlutterMap(mapController: map, options: MapOptions(
+        backgroundColor: night ? const Color(0xff18222c) : const Color(0xffe9eef2),
         initialCenter: const LatLng(16, 108), initialZoom: 5,
         onMapReady: () { ready = true; if (position != null && follow) map.move(position!, 16); },
         onTap: (_, point) => choose(point),
       ), children: [
-        if (configuredTiles) TileLayer(urlTemplate: tileTemplate, userAgentPackageName: 'com.infinitimoney.infiniti_caros'),
+        if (tiles != null) TileLayer(key: ValueKey(tiles.template), urlTemplate: tiles.template, userAgentPackageName: 'com.infinitimoney.infiniti_caros'),
         if (route != null) PolylineLayer(polylines: [Polyline(points: route!.points, strokeWidth: 5, color: Colors.blue)]),
         MarkerLayer(markers: [
           if (position != null) Marker(point: position!, child: const Icon(Icons.my_location, color: Colors.blue, size: 32)),
           if (destination != null) Marker(point: destination!, child: const Icon(Icons.location_pin, color: Colors.red, size: 36)),
         ]),
       ])),
-      if (!configuredTiles) const Text('Chưa cấu hình bản đồ nền; chỉ hiển thị tọa độ và tuyến nếu có.'),
-      if (configuredTiles) Text(tileAttribution, style: const TextStyle(fontSize: 11)),
+      if (tiles == null) const Text('Chưa cấu hình bản đồ nền; chỉ hiển thị tọa độ và tuyến nếu có.'),
+      if (night && !nightSource.valid && tiles != null) const Text('Chưa có nguồn tile ban đêm; đang dùng bản đồ ban ngày.'),
+      if (tiles != null) Text(tiles.attribution, style: const TextStyle(fontSize: 11)),
       const Padding(padding: EdgeInsets.all(6), child: Text('Dẫn đường thử nghiệm, luôn tuân thủ biển báo. Chỉ thao tác khi đã đỗ xe.')),
     ]),
     );

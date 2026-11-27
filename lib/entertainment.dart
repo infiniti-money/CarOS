@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,7 +61,8 @@ Future<List<Episode>> fetchPodcast(Uri uri, http.Client client, {
 }
 
 class EntertainmentScreen extends StatefulWidget {
-  const EntertainmentScreen({super.key, required this.prefs});
+  const EntertainmentScreen({super.key, required this.prefs, this.backgroundAudio = false});
+  final bool backgroundAudio;
   final SharedPreferences prefs;
   @override
   State<EntertainmentScreen> createState() => _EntertainmentScreenState();
@@ -78,6 +80,7 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
   bool loadingFeed = false;
   bool hasSource = false;
   bool saving = false;
+  int itemSequence = 0;
   Uri? currentUri;
   late PlaybackSession? saved = PlaybackSession.decode(widget.prefs.getString(playbackSessionKey));
   StreamSubscription<PlayerException>? errors;
@@ -95,7 +98,11 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     setState(() { busy = true; hasSource = false; currentUri = null; message = 'Đang tải âm thanh'; });
     try {
       await player.stop();
-      final duration = await player.setUrl(uri.toString()).timeout(const Duration(seconds: 20));
+      final duration = await player.setAudioSource(AudioSource.uri(uri, tag: MediaItem(
+        id: 'caros-${DateTime.now().microsecondsSinceEpoch}-${++itemSequence}',
+        title: name.trim().isEmpty ? 'Âm thanh CarOS' : name.trim(),
+        album: 'Infiniti CarOS',
+      ))).timeout(const Duration(seconds: 20));
       if (!mounted) return;
       if (restore != null) {
         final position = restore.resumePosition(duration);
@@ -181,6 +188,19 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     }
   }
 
+  Future<void> stopPlayback() async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await player.stop();
+      if (mounted) setState(() => message = 'Đã dừng phát âm thanh');
+    } catch (_) {
+      if (mounted) setState(() => message = 'Không thể dừng âm thanh');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Future<void> loadFeed() async {
     final uri = secureMediaUri(feed.text);
     if (loadingFeed) return;
@@ -227,6 +247,7 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     body: ListView(padding: const EdgeInsets.all(16), children: [
       Text(title, style: Theme.of(context).textTheme.titleLarge),
       Text(message),
+      Text(widget.backgroundAudio ? 'Có thể phát khi khóa màn hình hoặc chuyển ứng dụng. Rời màn hình Giải trí trong CarOS sẽ dừng phát.' : 'Bản Car Host: phát âm thanh riêng, chưa bật điều khiển nền của điện thoại.'),
       StreamBuilder<PlayerState>(stream: player.playerStateStream, builder: (context, snapshot) {
         final state = snapshot.data;
         final playing = (state?.playing ?? false) && state?.processingState != ProcessingState.completed;
@@ -234,7 +255,8 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
         final waiting = processing == ProcessingState.loading || processing == ProcessingState.buffering;
         return Row(children: [
           IconButton(tooltip: playing ? 'Tạm dừng' : 'Phát', onPressed: !hasSource || busy ? null : playing ? pause : resume, icon: Icon(playing ? Icons.pause_circle : Icons.play_circle, size: 42)),
-          Expanded(child: Text(waiting ? 'Đang đệm' : processing == ProcessingState.completed ? 'Đã kết thúc' : playing ? 'Đang phát' : 'Tạm dừng')),
+          Expanded(child: Text(waiting ? 'Đang đệm' : processing == ProcessingState.completed ? 'Đã kết thúc' : playing ? 'Đang phát' : processing == ProcessingState.idle ? 'Đã dừng' : 'Tạm dừng')),
+          IconButton(tooltip: 'Dừng âm thanh', onPressed: !hasSource || busy ? null : stopPlayback, icon: const Icon(Icons.stop_circle_outlined)),
         ]);
       }),
       const Divider(),
