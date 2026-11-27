@@ -6,3 +6,6 @@
 - Scheduled workflows may start late and GitHub may disable schedules on inactive public repositories. Device testing and signed releases are separate.
 
 Policy regression tests: run `node --test scripts/ci_monitor.test.cjs`. Audit tests check matching base, stale base, failing or missing jobs, and unknown PR association. The scheduled workflow is read-only; it does not launch duplicate builds or merge PRs.
+
+## Full workflow audit
+The monitor now reports application CI, pinned CarPlay dependency CI for each PR, and Car host CI for the current car-host.yml path policy (including renamed paths). If path retrieval fails or is truncated, require host evidence rather than assume not needed. Missing run association, head/base mismatch, incomplete/missing jobs and failed workflows are not eligible. Main push only expects verify.yml, because the other workflows do not trigger on push. Audit remains read-only and informational, not branch protection or approval. GitHub schedule execution has not yet been observed; verify actual scheduled run separately.
