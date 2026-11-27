@@ -13,6 +13,15 @@ if sys.argv[1] == 'android':
         name = 'android.permission.' + permission
         if not any(e.get('{'+ns+'}name') == name for e in root.findall('uses-permission')):
             root.insert(0, ET.Element('uses-permission', {'{'+ns+'}name': name}))
+    for suffix, attrs in (
+        ('BLUETOOTH', {'maxSdkVersion':'30'}),
+        ('BLUETOOTH_ADMIN', {'maxSdkVersion':'30'}),
+        ('BLUETOOTH_SCAN', {'usesPermissionFlags':'neverForLocation'}),
+        ('BLUETOOTH_CONNECT', {}),
+    ):
+        name = 'android.permission.' + suffix
+        if not any(e.get('{'+ns+'}name') == name for e in root.findall('uses-permission')):
+            root.insert(0, ET.Element('uses-permission', {'{'+ns+'}name':name, **{'{'+ns+'}'+k:v for k,v in attrs.items()}}))
     queries = root.find('queries')
     if queries is None:
         queries = ET.SubElement(root, 'queries')
@@ -30,6 +39,7 @@ elif sys.argv[1] == 'ios':
     path = Path('ios/Runner/Info.plist')
     data = plistlib.loads(path.read_bytes())
     data['NSLocationWhenInUseUsageDescription'] = 'Infiniti CarOS dùng vị trí khi bạn bắt đầu hành trình để ước tính tốc độ và quãng đường.'
+    data['NSBluetoothAlwaysUsageDescription'] = 'Kết nối adapter OBD-II BLE do bạn chọn để đọc thông số xe.'
     data['NSCameraUsageDescription'] = 'Quay video hành trình khi bạn chủ động bật camera.'
     data['NSMicrophoneUsageDescription'] = 'Dùng micro khi bạn bật trợ lý giọng nói.'
     data['NSSpeechRecognitionUsageDescription'] = 'Nhận dạng lệnh tiếng Việt khi bạn yêu cầu.'
