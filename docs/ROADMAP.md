@@ -50,8 +50,8 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 34 | Camera | Xuất/chia sẻ | Chưa xác minh | Cần luồng xuất và quyền |
 | 35 | Camera | Khôi phục gián đoạn | Một phần | docs/DASHCAM.md: staging/lifecycle; chưa crash-proof |
 | 36 | Camera | Quyền riêng tư | Một phần | docs/DASHCAM.md: lưu riêng, không upload; cần kiểm tra quyền |
-| 37 | An toàn | SOS thủ công | Chưa xác minh | Cần luồng xác nhận và test |
-| 38 | An toàn | Chia sẻ vị trí tự nguyện | Chưa xác minh | Cần consent và thu hồi |
+| 37 | An toàn | SOS thủ công | Một phần | safety_screen.dart: mở trình gọi sau xác nhận, không tự gọi; cần thiết bị |
+| 38 | An toàn | Chia sẻ vị trí tự nguyện | Một phần | safety_policy.dart: vị trí một lần, xem trước/sao chép tự nguyện, không tự gửi; cần thiết bị |
 | 39 | An toàn | Hạn chế thao tác khi lái | Một phần | docs/DASHCAM.md: gate Face Control; cần toàn app |
 | 40 | An toàn | Quản lý quyền | Một phần | docs/GPS.md; docs/COMMUNICATION.md; cần test từ chối/thu hồi |
 | 41 | An toàn | Bảo mật token | Chưa xác minh | Cần secure storage khi có OAuth |

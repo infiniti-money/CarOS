@@ -7,6 +7,7 @@ import 'smart_bar.dart';
 import 'dashcam.dart';
 import 'launcher_prefs.dart';
 import 'launcher_editor.dart';
+import 'safety_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -147,6 +148,8 @@ class Dashboard extends StatelessWidget {
             const Text('CarOS • Tiếng Việt'),
             const SizedBox(height: 12),
             panel(context, const Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Chế độ độc lập • Chưa kết nối xe'))])),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SafetyScreen())), icon: const Icon(Icons.health_and_safety_outlined), label: const Text('An toàn và hỗ trợ')),
             const SizedBox(height: 12),
             if (split) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(flex: 4, child: trip),
