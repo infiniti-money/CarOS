@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,7 +24,7 @@ jobs:
           cp /tmp/package/dist/maplibre-gl.mjs /tmp/package/dist/maplibre-gl.css webapp/vendor/
           cp /tmp/package/LICENSE* webapp/vendor/
           test -s webapp/vendor/maplibre-gl.mjs
-      - run: node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --check webapp/terrain.mjs && node --check webapp/media.mjs && node --test webapp/*.test.mjs
+      - run: node --check webapp/shell.mjs && node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --check webapp/terrain.mjs && node --check webapp/media.mjs && node --test webapp/*.test.mjs
       - run: python3 -m json.tool webapp/manifest.webmanifest > /dev/null
       - name: Install pinned browser test runner
         run: |

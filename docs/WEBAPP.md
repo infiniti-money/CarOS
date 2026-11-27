@@ -28,3 +28,6 @@ MapLibre GL JS 6.19.0 được vendored trong workflow từ npm, không tải Ja
 
 ## Browser E2E
 CI chạy Chromium Playwright 1.56.1 với GPS mô phỏng của browser, camera giả lập của Chromium, OSRM/DEM/tile/radio fixture chặn mạng. Kiểm tra thao tác GPS, lưu chỗ đỗ, ETA, widget, xóa dữ liệu, MediaRecorder, audio, WebGL MapLibre và offline shell. Không thay thế QA Safari/iOS/Android, nguồn DEM/OSRM/đài thực hoặc camera phần cứng. Deployment phải qua cả Node và E2E.
+
+## Giao diện ô tô WebApp
+Launcher biểu tượng tròn tự vẽ, SmartBar cố định có giờ thiết bị và tốc độ GPS thật (— nếu thiếu), màn hình bản đồ/đỗ xe/giải trí/camera/cài đặt riêng và Tổng quan giữ widget cũ. Bàn phím gọi điện xác nhận mở tel:; Contact Picker chỉ nếu trình duyệt hỗ trợ, không đọc lịch sử cuộc gọi hay tự nhập danh bạ. Không sao chép ảnh mẫu, dữ liệu liên hệ, logo độc quyền, trạng thái tài khoản hoặc thời tiết giả. E2E bổ sung chuyển màn hình và bàn phím; runner Ubuntu 24.04 cho Playwright 1.56.1.
