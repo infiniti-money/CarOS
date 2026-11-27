@@ -8,6 +8,27 @@ import 'package:url_launcher/url_launcher.dart';
 double? speedKmh(double metersPerSecond) =>
     metersPerSecond.isFinite && metersPerSecond >= 0 ? metersPerSecond * 3.6 : null;
 
+bool isFreshGps(DateTime timestamp, DateTime now) {
+  final age = now.difference(timestamp);
+  return age >= const Duration(seconds: -2) && age <= const Duration(seconds: 10);
+}
+
+Map<String, dynamic>? decodeTrip(String row) {
+  try {
+    final data = jsonDecode(row);
+    if (data is! Map<String, dynamic>) return null;
+    final start = data['start'];
+    final seconds = data['seconds'];
+    final meters = data['meters'];
+    if (start is! String || DateTime.tryParse(start) == null ||
+        seconds is! int || seconds < 0 || meters is! num ||
+        !meters.isFinite || meters < 0) return null;
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
 class TripPanel extends StatefulWidget {
   const TripPanel({super.key, required this.prefs});
   final SharedPreferences prefs;
@@ -18,6 +39,7 @@ class TripPanel extends StatefulWidget {
 class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
   StreamSubscription<Position>? sub;
   Position? last;
+  Timer? gpsWatchdog;
   DateTime? started;
   double distance = 0;
   double? speed;
@@ -51,6 +73,7 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
         permission = await Geolocator.requestPermission();
       }
       if (!mounted) return;
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
       if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
         setState(() => status = 'Chưa cấp quyền vị trí trong Cài đặt');
         return;
@@ -61,6 +84,12 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
         last = null;
         speed = null;
         status = 'Đang chờ tín hiệu GPS';
+      });
+      gpsWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+        final point = last;
+        if (mounted && started != null && point != null && !isFreshGps(point.timestamp, DateTime.now())) {
+          setState(() { last = null; speed = null; status = 'GPS mất tín hiệu'; });
+        }
       });
       sub = Geolocator.getPositionStream(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0)).listen(onPosition, onError: (Object error) {
         if (mounted) {
@@ -82,6 +111,9 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
 
   void onPosition(Position p) {
     if (!mounted || started == null) return;
+    if (!isFreshGps(p.timestamp, DateTime.now())) return;
+    if (last != null && !p.timestamp.isAfter(last!.timestamp)) return;
+    if (!p.latitude.isFinite || p.latitude.abs() > 90 || !p.longitude.isFinite || p.longitude.abs() > 180) return;
     if (!p.accuracy.isFinite || p.accuracy < 0 || p.accuracy > 50) {
       setState(() { speed = null; last = null; status = 'GPS chưa đủ chính xác'; });
       return;
@@ -105,6 +137,8 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
     final begin = started;
     if (begin == null) return;
     final meters = distance;
+    gpsWatchdog?.cancel();
+    gpsWatchdog = null;
     final subscription = sub;
     sub = null;
     setState(() { started = null; speed = null; last = null; status = message; busy = true; });
@@ -123,7 +157,7 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
 
   Future<void> map() async {
     final point = last;
-    final query = point == null ? '' : '?api=1&query=${point.latitude},${point.longitude}';
+    final query = point == null || !isFreshGps(point.timestamp, DateTime.now()) ? '' : '?api=1&query=${point.latitude},${point.longitude}';
     try {
       if (await launchUrl(Uri.parse('https://www.google.com/maps/search/$query'), mode: LaunchMode.externalApplication)) return;
     } catch (_) {}
@@ -134,7 +168,8 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
     showModalBottomSheet<void>(context: context, builder: (context) => SafeArea(child: ListView(children: [
       const ListTile(title: Text('Lịch sử hành trình'), subtitle: Text('Chỉ lưu tổng quãng đường và thời gian trên thiết bị')),
       for (final row in history) Builder(builder: (context) {
-        final data = jsonDecode(row) as Map<String, dynamic>;
+        final data = decodeTrip(row);
+        if (data == null) return const ListTile(title: Text('Bản ghi không hợp lệ'));
         return ListTile(title: Text('${((data['meters'] as num) / 1000).toStringAsFixed(2)} km'), subtitle: Text('${data['start']} • ${data['seconds']} giây'));
       }),
       if (history.isEmpty) const ListTile(title: Text('Chưa có hành trình')),
@@ -148,6 +183,7 @@ class _TripPanelState extends State<TripPanel> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    gpsWatchdog?.cancel();
     unawaited(sub?.cancel());
     super.dispose();
   }
