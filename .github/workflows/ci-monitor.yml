@@ -1,0 +1,35 @@
+name: CarOS CI Monitor
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ci-monitor.yml'
+      - 'scripts/ci_monitor.cjs'
+      - 'scripts/ci_monitor.test.cjs'
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: caros-ci-monitor
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test monitor policy
+        run: node --test scripts/ci_monitor.test.cjs
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const audit = require('./scripts/ci_monitor.cjs');
+            await audit({github, context, core});
