@@ -2,12 +2,13 @@ import {project,visibleTiles,zoomCenter,wrapX,clamp,worldSize,relative,minZoom,m
 export function createMap({getGps,getParking}){
  const $=id=>document.getElementById(id),view=$('map-view');let enabled=false,z=5,center=project(16,108,z),drag=null,tiles=new Map(),pins=[],generation=0;
  const template='https://tile.openstreetmap.org/{z}/{x}/{y}.png'; // replace with licensed provider for production load
- function render(){if(!enabled)return;const w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;const wanted=new Set();const token=++generation;let failed=0;
- for(const t of visibleTiles(center,w,h,z)){wanted.add(t.key);let img=tiles.get(t.key);if(!img){img=document.createElement('img');img.alt='';img.draggable=false;img.src=template.replace('{z}',t.z).replace('{x}',t.x).replace('{y}',t.y);tiles.set(t.key,img);view.append(img);}img.onerror=()=>{if(generation===token){failed++;$('map-status').textContent='Một số ô bản đồ không tải được. Kiểm tra mạng hoặc nhà cung cấp.';}};img.style.left=t.left+'px';img.style.top=t.top+'px';}
+ function render(){if(!enabled)return;const w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;const wanted=new Set();++generation;
+ for(const t of visibleTiles(center,w,h,z)){wanted.add(t.key);let img=tiles.get(t.key);if(!img){img=document.createElement('img');img.alt='';img.draggable=false;img.onerror=()=>{img.dataset.failed='true';if(enabled&&tiles.get(t.key)===img)updateStatus();};img.onload=()=>{delete img.dataset.failed;if(enabled&&tiles.get(t.key)===img)updateStatus();};tiles.set(t.key,img);view.append(img);img.src=template.replace('{z}',t.z).replace('{x}',t.x).replace('{y}',t.y);}img.style.left=t.left+'px';img.style.top=t.top+'px';}
  for(const [key,img] of tiles)if(!wanted.has(key)){img.remove();tiles.delete(key);}
  for(const pin of pins)pin.remove();pins=[];for(const [type,p] of [['gps',getGps()],['parking',getParking()]]){if(!p)continue;const pos=relative(project(p.lat,p.lon,z),center,w,h,z);if(pos.x<0||pos.x>w||pos.y<0||pos.y>h)continue;const pin=document.createElement('span');pin.className='map-pin '+type;pin.title=type==='gps'?'GPS hiện tại':'Chỗ đỗ đã lưu';pin.setAttribute('role','img');pin.setAttribute('aria-label',pin.title);pin.style.left=pos.x+'px';pin.style.top=pos.y+'px';view.append(pin);pins.push(pin);}
- $('map-status').textContent=navigator.onLine?'Mức thu phóng '+z+' · Bản đồ trực tuyến':'Mất mạng · Không có bản đồ ngoại tuyến';if(failed)$('map-status').textContent='Không tải được bản đồ';
+ updateStatus();
  }
+ function updateStatus(){const failed=[...tiles.values()].some(img=>img.dataset.failed==='true');$('map-status').textContent=!navigator.onLine?'Mất mạng · Không có bản đồ ngoại tuyến':failed?'Một số ô bản đồ không tải được. Kiểm tra mạng hoặc nhà cung cấp.':'Mức thu phóng '+z+' · Bản đồ trực tuyến';}
  function pan(x,y){center={x:wrapX(center.x+x,z),y:clamp(center.y+y,0,worldSize(z))};render();}
  function zoom(d){const next=clamp(z+d,minZoom,maxZoom);center=zoomCenter(center,z,next);z=next;render();}
  function locate(p){if(!p)return;z=16;center=project(p.lat,p.lon,z);render();}
