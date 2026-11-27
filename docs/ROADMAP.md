@@ -31,7 +31,7 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 15 | Giải trí | Radio/podcast | Một phần | docs/ENTERTAINMENT.md; test/entertainment_test.dart |
 | 16 | Giải trí | Nhạc nền | Chưa xác minh | docs/ENTERTAINMENT.md: chưa hỗ trợ |
 | 17 | Giải trí | Điều khiển màn hình khóa | Chưa xác minh | Cần media session và test thật |
-| 18 | Giải trí | Khôi phục phiên phát | Chưa xác minh | Cần lưu phiên và test |
+| 18 | Giải trí | Khôi phục phiên phát | Một phần | playback_session.dart: lưu/khôi phục thủ công, không tự phát; cần CI và kiểm thử audio thiết bị |
 | 19 | Trợ lý | Nhận diện giọng Việt | Một phần | docs/COMMUNICATION.md; cần micro/locale thật |
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
 | 21 | Trợ lý | Gọi điện/đọc thông báo | Một phần | docs/COMMUNICATION.md: tel sau xác nhận; chưa đọc thông báo |

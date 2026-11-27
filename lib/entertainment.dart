@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'playback_session.dart';
 
 Uri? secureMediaUri(String value) {
   final uri = Uri.tryParse(value.trim());
@@ -58,7 +60,8 @@ Future<List<Episode>> fetchPodcast(Uri uri, http.Client client, {
 }
 
 class EntertainmentScreen extends StatefulWidget {
-  const EntertainmentScreen({super.key});
+  const EntertainmentScreen({super.key, required this.prefs});
+  final SharedPreferences prefs;
   @override
   State<EntertainmentScreen> createState() => _EntertainmentScreenState();
 }
@@ -74,6 +77,9 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
   bool busy = false;
   bool loadingFeed = false;
   bool hasSource = false;
+  bool saving = false;
+  Uri? currentUri;
+  late PlaybackSession? saved = PlaybackSession.decode(widget.prefs.getString(playbackSessionKey));
   StreamSubscription<PlayerException>? errors;
 
   @override
@@ -84,15 +90,20 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
     });
   }
 
-  Future<void> playSource(Uri uri, String name) async {
+  Future<void> playSource(Uri uri, String name, {PlaybackSession? restore}) async {
     if (busy) return;
-    setState(() { busy = true; hasSource = false; message = 'Đang tải âm thanh'; });
+    setState(() { busy = true; hasSource = false; currentUri = null; message = 'Đang tải âm thanh'; });
     try {
       await player.stop();
-      await player.setUrl(uri.toString()).timeout(const Duration(seconds: 20));
+      final duration = await player.setUrl(uri.toString()).timeout(const Duration(seconds: 20));
       if (!mounted) return;
-      setState(() { title = name; hasSource = true; message = 'Đã tải nguồn'; });
-      unawaited(resume());
+      if (restore != null) {
+        final position = restore.resumePosition(duration);
+        if (position > Duration.zero) await player.seek(position);
+      }
+      if (!mounted) return;
+      setState(() { title = name; currentUri = uri; hasSource = true; message = restore == null ? 'Đã tải nguồn' : 'Đã khôi phục ở trạng thái tạm dừng'; });
+      if (restore == null) unawaited(resume());
     } catch (_) {
       if (mounted) {
         try { await player.stop(); } catch (_) {}
@@ -119,6 +130,50 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
       await player.pause();
     } catch (_) {
       if (mounted) setState(() => message = 'Không thể tạm dừng');
+    }
+  }
+
+  Future<void> saveSession() async {
+    final uri = currentUri;
+    if (busy || saving || !hasSource || uri == null) return;
+    if (!PlaybackSession.allowed(uri)) {
+      setState(() => message = 'Không lưu URL chứa thông tin xác thực, tham số hoặc đoạn neo.');
+      return;
+    }
+    final position = player.duration == null ? Duration.zero : player.position;
+    final session = PlaybackSession(uri: uri, title: title, position: position);
+    final validated = PlaybackSession.decode(session.encode());
+    if (validated == null) {
+      setState(() => message = 'Không thể lưu phiên này.');
+      return;
+    }
+    setState(() => saving = true);
+    try {
+      final ok = await widget.prefs.setString(playbackSessionKey, validated.encode());
+      if (mounted) setState(() {
+        if (ok) saved = validated;
+        message = ok ? 'Đã lưu phiên trên thiết bị' : 'Không lưu được phiên';
+      });
+    } catch (_) {
+      if (mounted) setState(() => message = 'Không lưu được phiên');
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  Future<void> clearSession() async {
+    if (saving || busy) return;
+    setState(() => saving = true);
+    try {
+      final ok = await widget.prefs.remove(playbackSessionKey);
+      if (mounted) setState(() {
+        if (ok) saved = null;
+        message = ok ? 'Đã xóa phiên đã lưu' : 'Không xóa được phiên';
+      });
+    } catch (_) {
+      if (mounted) setState(() => message = 'Không xóa được phiên');
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
   }
 
@@ -178,6 +233,17 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
           Expanded(child: Text(waiting ? 'Đang đệm' : processing == ProcessingState.completed ? 'Đã kết thúc' : playing ? 'Đang phát' : 'Tạm dừng')),
         ]);
       }),
+      const Divider(),
+      const Text('Phiên phát cục bộ'),
+      const Text('Lưu thủ công nguồn công khai và vị trí phát. Không tự phát khi mở lại.'),
+      Wrap(spacing: 8, children: [
+        OutlinedButton(onPressed: !hasSource || busy || saving ? null : saveSession, child: const Text('Lưu phiên hiện tại')),
+        if (saved != null) ...[
+          OutlinedButton(onPressed: busy || saving ? null : () { final previous = saved; if (previous != null) unawaited(playSource(previous.uri, previous.title, restore: previous)); }, child: const Text('Khôi phục phiên')),
+          TextButton(onPressed: busy || saving ? null : clearSession, child: const Text('Xóa phiên')),
+        ],
+      ]),
+      if (saved != null) Text('Đã lưu: ${saved!.title}'),
       const Divider(),
       const Text('Radio trực tuyến'),
       TextField(controller: source, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'URL luồng radio HTTPS')),

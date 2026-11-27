@@ -117,7 +117,7 @@ class Dashboard extends StatelessWidget {
     final allEntries = <(String, IconData, VoidCallback)>[
       ('Bản đồ', Icons.map_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen()))),
       ('Bản đồ Apple', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
-      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen()))),
+      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs)))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
       ('Podcast', Icons.podcasts, () => open(context, 'https://podcasts.apple.com/')),
       ('Trợ lý', Icons.mic_none, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen()))),
@@ -161,7 +161,7 @@ class Dashboard extends StatelessWidget {
             dark: dark, glass: glass, onAction: (action) {
               switch (action) {
                 case 'map': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())); break;
-                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())); break;
+                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs))); break;
                 case 'theme': onDark(!dark); break;
                 case 'voice': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())); break;
                 case 'settings': settings(context); break;
