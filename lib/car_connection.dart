@@ -16,3 +16,21 @@ String parkingSummary(String? raw) {
     return 'Vị trí không hợp lệ';
   }
 }
+
+enum CarCategory { drivingTask, audio, poi, unavailable }
+
+CarCategory carCategory(String? configured, {required bool ios}) {
+  if (ios && configured == 'driving-task') return CarCategory.drivingTask;
+  if (ios && configured == 'audio') return CarCategory.audio;
+  if (!ios && configured == 'poi') return CarCategory.poi;
+  return CarCategory.unavailable;
+}
+
+Uri? carAudioUri(String raw) {
+  final uri = Uri.tryParse(raw);
+  if (uri == null || uri.scheme != 'https' || uri.host.isEmpty ||
+      uri.userInfo.isNotEmpty || uri.hasFragment) {
+    return null;
+  }
+  return uri;
+}
