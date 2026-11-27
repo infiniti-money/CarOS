@@ -37,7 +37,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
   int generation = 0;
   int attempts = 0;
   bool busy = false, connected = false, active = true, auto = false;
-  bool permissionReady = false;
+  bool permissionReady = false, choosing = false, saving = false;
+  Future<void>? cleanup;
   String? selected;
   String message = 'Chỉ kết nối adapter OBD-II BLE của bạn khi đã đỗ xe.';
 
@@ -93,7 +94,7 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
 
   Future<void> startSaved() async {
     final id = selected;
-    if (id == null || !auto || busy || !active) return;
+    if (id == null || !auto || busy || !active || cleanup != null) return;
     final token = ++generation;
     setState(() => busy = true);
     try {
@@ -110,7 +111,7 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
   }
 
   Future<void> discover() async {
-    if (busy || connected || !active) return;
+    if (busy || connected || !active || cleanup != null || saving) return;
     retry?.cancel();
     final token = ++generation;
     setState(() { busy = true; devices.clear(); message = 'Đang tìm adapter BLE FFE0…'; });
@@ -146,7 +147,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
   }
 
   Future<void> choose(String id) async {
-    if (connected || !permissionReady || !active) return;
+    if (connected || !permissionReady || !active || choosing || saving || cleanup != null) return;
+    choosing = true;
     final approved = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
       title: const Text('Kết nối adapter của bạn?'),
       content: const Text('CarOS chỉ đọc dữ liệu OBD-II tiêu chuẩn. Không xóa lỗi, không thay đổi cấu hình ECU. Thực hiện khi xe đỗ an toàn.'),
@@ -155,14 +157,25 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
         FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Kết nối')),
       ],
     ));
-    if (approved != true || !mounted || !active || connected || link != null) return;
+    choosing = false;
+    if (approved != true || !mounted || !active || connected || link != null || cleanup != null) return;
     final token = ++generation;
     scanTimer?.cancel();
     await scan?.cancel();
     scan = null;
     if (!valid(token)) return;
-    setState(() { selected = id; attempts = 0; busy = true; devices.clear(); });
+    setState(() => busy = true);
     try {
+      // Never transfer reconnect consent to a different adapter.
+      if (selected != id && auto) {
+        final disabled = await widget.prefs.remove(obdAutoKey);
+        final removed = await widget.prefs.remove(obdDeviceKey);
+        if (!disabled || !removed) throw StateError('Could not clear previous adapter');
+        if (!valid(token)) return;
+        setState(() => auto = false);
+      }
+      if (!valid(token)) return;
+      setState(() { selected = id; attempts = 0; devices.clear(); });
       await connect(id, token);
     } catch (_) {
       if (valid(token)) await disconnect('Kết nối không thành công', reconnect: false);
@@ -195,6 +208,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
     }
     frame.clear();
     final completion = Completer<String>();
+    // Attach an error handler before the BLE write can trigger notifications.
+    unawaited(completion.future.then<void>((_) {}, onError: (Object _) {}));
     pending = completion;
     try {
       await ble!.writeCharacteristicWithResponse(channel!, value: ascii.encode('$command\r'))
@@ -228,7 +243,7 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
         if (!adapterOk(await send(command, token))) throw StateError('Adapter not verified');
       }
       if (!valid(token)) return;
-      setState(() { busy = false; attempts = 0; message = 'Đã kết nối adapter; đang đọc ECU.'; });
+      setState(() { busy = false; message = 'Đã kết nối adapter; đang đọc ECU.'; });
       while (valid(token) && connected) {
         for (final pid in ObdPid.values) {
           if (!valid(token)) return;
@@ -248,7 +263,14 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
   }
 
   Future<void> disconnect(String text, {required bool reconnect}) async {
+    final existing = cleanup;
+    if (existing != null) {
+      await existing;
+      return;
+    }
     final token = ++generation;
+    final finishing = Completer<void>();
+    cleanup = finishing.future;
     retry?.cancel();
     scanTimer?.cancel();
     final oldScan = scan, oldLink = link, oldNotifications = notifications;
@@ -260,6 +282,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
     try { await oldScan?.cancel(); } catch (_) {}
     try { await oldNotifications?.cancel(); } catch (_) {}
     try { await oldLink?.cancel(); } catch (_) {}
+    cleanup = null;
+    finishing.complete();
     if (!valid(token)) return;
     setState(() => busy = false);
     if (reconnect && auto && selected != null && attempts < 3) {
@@ -272,7 +296,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
 
   Future<void> remember(bool value) async {
     final id = selected;
-    if (id == null) return;
+    if (id == null || saving) return;
+    setState(() => saving = true);
     retry?.cancel();
     try {
       if (value) {
@@ -283,22 +308,32 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
           return;
         }
       } else {
-        await widget.prefs.remove(obdAutoKey);
-        await widget.prefs.remove(obdDeviceKey);
+        final disabled = await widget.prefs.remove(obdAutoKey);
+        final removed = await widget.prefs.remove(obdDeviceKey);
+        if (!disabled || !removed) throw StateError('Could not remove saved adapter');
       }
       if (mounted) setState(() => auto = value);
     } catch (_) { show('Không lưu được lựa chọn kết nối.'); }
+    finally { if (mounted) setState(() => saving = false); }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       active = true;
-      if (mounted) setState(() => busy = false);
-      if (auto) { attempts = 0; unawaited(startSaved()); }
+      unawaited(resumeConnection());
     } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
       active = false;
       unawaited(disconnect('Đã dừng đọc khi ứng dụng vào nền', reconnect: false));
+    }
+  }
+
+  Future<void> resumeConnection() async {
+    await cleanup;
+    if (!mounted || !active) return;
+    if (link == null && scan == null) {
+      setState(() => busy = false);
+      if (auto) { attempts = 0; await startSaved(); }
     }
   }
 
@@ -320,8 +355,8 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
       Text(message),
       const Text('Chỉ hỗ trợ BLE UART FFE0/FFE1 tương thích ELM327. Không phải Bluetooth Classic hoặc đồng hồ an toàn của xe.'),
       Wrap(spacing: 8, children: [
-        FilledButton(onPressed: busy || connected ? null : discover, child: const Text('Tìm adapter')),
-        OutlinedButton(onPressed: busy || connected ? () async {
+        FilledButton(onPressed: busy || connected || saving ? null : discover, child: const Text('Tìm adapter')),
+        OutlinedButton(onPressed: (busy || connected) && !saving ? () async {
           await remember(false);
           await disconnect('Đã ngắt kết nối', reconnect: false);
         } : null, child: const Text('Ngắt kết nối')),
@@ -331,7 +366,7 @@ class _ObdScreenState extends State<ObdScreen> with WidgetsBindingObserver {
           subtitle: Text('Tín hiệu ${d.rssi} dBm'), onTap: () => choose(d.id)),
       SwitchListTile(title: const Text('Ghi nhớ và tự kết nối lại'),
         subtitle: const Text('Chỉ khi mở màn hình này; tối đa 3 lần thử lại'),
-        value: auto, onChanged: (connected && !busy) || auto ? remember : null),
+        value: auto, onChanged: !saving && ((connected && !busy) || auto) ? remember : null),
       const Divider(),
       for (final pid in ObdPid.values)
         ListTile(title: Text(pid.label), trailing: Text(
