@@ -22,7 +22,9 @@ Map<String, dynamic>? decodeTrip(String row) {
     final meters = data['meters'];
     if (start is! String || DateTime.tryParse(start) == null ||
         seconds is! int || seconds < 0 || meters is! num ||
-        !meters.isFinite || meters < 0) return null;
+        !meters.isFinite || meters < 0) {
+      return null;
+    }
     return data;
   } catch (_) {
     return null;
