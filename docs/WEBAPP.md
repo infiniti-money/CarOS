@@ -37,3 +37,5 @@ Bốn tab điện thoại: yêu thích và danh bạ CarOS lưu số do người
 
 ## Đối chiếu ảnh tham chiếu
 Tái tạo tỷ lệ ảnh ngang 1536 × 710, launcher hai trang 4×2 (8 và 7 mục), biểu tượng SVG tự vẽ, dock nổi 85,6% chiều rộng, 16,7% chiều cao, tab điện thoại bốn mục và keypad 4×3 đúng thứ tự. Nhãn tiếng Anh theo ảnh mẫu. Không nhập ảnh chụp chứa thông tin cá nhân vào repo. Đồng hồ/GPS lấy dữ liệu thực; thời tiết chưa có nguồn thì —°. Calendar chưa đọc lịch, SMS mở ứng dụng hệ thống, Spotify/Podcasts mở dịch vụ chính thức. Bản đồ dùng nguồn OSM/DEM, không giả Apple Maps. E2E đo bố cục nhưng chưa có đối chiếu pixel hoặc thiết bị thật; không cam kết 100%.
+
+Organize apps: màn hình danh sách với công tắc bật/tắt và nút đổi vị trí; cài đặt không thể bị ẩn, tùy chọn lưu cục bộ, xóa dữ liệu khôi phục launcher.
