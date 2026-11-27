@@ -9,6 +9,6 @@ def configure_glass():
     needle = 'GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)'
     if needle not in text:
         raise RuntimeError('Unsupported AppDelegate template; review UIScene registration')
-    text = text.replace(needle, needle + '\n    registerInfinitiGlass(engineBridge.pluginRegistry)', 1)
-    source = Path('native/ios/GlassBar.swift').read_text()
+    text = text.replace(needle, needle + '\n    registerInfinitiGlass(engineBridge.pluginRegistry)\n    registerInfinitiFace(engineBridge.pluginRegistry)', 1)
+    source = Path('native/ios/GlassBar.swift').read_text() + '\n' + Path('native/ios/FaceControl.swift').read_text()
     target.write_text(text + '\n' + marker + '\n' + source)

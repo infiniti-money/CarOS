@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import 'dashcam_policy.dart';
+import 'face_control.dart';
 
 const maxClips = 20;
 const clipDuration = Duration(minutes: 5);
@@ -262,6 +263,7 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
           FilledButton(onPressed: busy || releasing || camera == null ? null : recording ? finish : begin, child: Text(recording ? 'Dừng và lưu' : 'Quay video')),
           OutlinedButton(onPressed: busy || releasing || camera == null ? null : release, child: const Text('Tắt camera')),
         ]),
+        OutlinedButton.icon(onPressed: busy || recording || releasing || camera != null ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FaceControlScreen())), icon: const Icon(Icons.face), label: const Text('Thử điều khiển khuôn mặt khi đỗ xe')),
         SwitchListTile(title: const Text('Ghi vòng lặp'), subtitle: const Text('Khi đầy, tự xóa video cũ nhất chưa khóa. Chỉ bật khi đã đỗ xe.'), value: loop, onChanged: busy || recording || releasing ? null : (value) => setState(() => loop = value)),
         if (recording) OutlinedButton.icon(onPressed: busy ? null : () => setState(() => protectCurrent = !protectCurrent), icon: Icon(protectCurrent ? Icons.lock : Icons.lock_open), label: Text(protectCurrent ? 'Đoạn hiện tại đã được đánh dấu' : 'Bảo vệ đoạn đang quay')),
         Text('Kho video: ${(libraryBytes / 1048576).toStringAsFixed(1)} / 1024 MiB • ${clips.length}/20 đoạn'),
