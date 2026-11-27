@@ -15,11 +15,12 @@ jobs:
         with:
           channel: stable
           flutter-version: '3.44.2'
+      - run: flutter create --platforms=android --org com.infinitimoney --project-name infiniti_caros .
+      - run: rm -f test/widget_test.dart
+      - run: python3 scripts/configure_location.py android
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - run: flutter create --platforms=android --org com.infinitimoney --project-name infiniti_caros .
-      - run: rm -f test/widget_test.dart
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
@@ -34,5 +35,6 @@ jobs:
           channel: stable
           flutter-version: '3.44.2'
       - run: flutter create --platforms=ios --org com.infinitimoney --project-name infiniti_caros .
+      - run: python3 scripts/configure_location.py ios
       - run: flutter pub get
       - run: flutter build ios --simulator --debug

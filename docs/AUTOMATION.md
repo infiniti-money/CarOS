@@ -4,3 +4,5 @@
 - Existing verify.yml builds Android/iOS on pushes to main and PR changes. Monitor success is not a green build; examine its summary and the Verify Infiniti CarOS jobs verify and ios.
 - For repository-level enforcement, configure a main branch protection rule or ruleset requiring PRs, up-to-date branches and the verify and ios status checks, without bypass for routine automation. This is an administrator setting, not enforced by this monitor.
 - Scheduled workflows may start late and GitHub may disable schedules on inactive public repositories. Device testing and signed releases are separate.
+
+Policy regression tests: run `node --test scripts/ci_monitor.test.cjs`. Audit tests check matching base, stale base, failing or missing jobs, and unknown PR association. The scheduled workflow is read-only; it does not launch duplicate builds or merge PRs.
