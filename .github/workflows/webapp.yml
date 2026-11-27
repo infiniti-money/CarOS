@@ -16,7 +16,15 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 scripts/generate_web_icons.py
-      - run: node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --test webapp/*.test.mjs
+      - name: Vendor pinned MapLibre GL JS
+        run: |
+          mkdir -p webapp/vendor
+          npm pack maplibre-gl@6.19.0 --ignore-scripts --pack-destination /tmp
+          tar -xzf /tmp/maplibre-gl-6.19.0.tgz -C /tmp
+          cp /tmp/package/dist/maplibre-gl.mjs /tmp/package/dist/maplibre-gl.css webapp/vendor/
+          cp /tmp/package/LICENSE* webapp/vendor/
+          test -s webapp/vendor/maplibre-gl.mjs
+      - run: node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --check webapp/terrain.mjs && node --check webapp/media.mjs && node --test webapp/*.test.mjs
       - run: python3 -m json.tool webapp/manifest.webmanifest > /dev/null
       - run: rm webapp/*.test.mjs
       - uses: actions/upload-pages-artifact@v3
