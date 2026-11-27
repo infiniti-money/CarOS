@@ -36,14 +36,14 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
 | 21 | Trợ lý | Gọi điện/đọc thông báo | Một phần | docs/COMMUNICATION.md: tel sau xác nhận; chưa đọc thông báo |
 | 22 | Trợ lý | Lịch/nhắc việc | Một phần | docs/COMMUNICATION.md: chỉ đọc lịch |
-| 23 | Trợ lý | Siri Shortcuts | Chưa xác minh | Cần App Intents và thiết bị |
-| 24 | Trợ lý | Rảnh tay | Chưa xác minh | docs/COMMUNICATION.md: push-to-talk, không nghe nền |
+| 23 | Trợ lý | Siri Shortcuts | Một phần | Native AppIntents iOS 16+, 3 shortcut mở màn hình; cần CI và Siri thiết bị |
+| 24 | Trợ lý | Rảnh tay | Một phần | Siri mở màn hình qua lệnh hệ điều hành; trợ lý trong app vẫn push-to-talk, chưa xác minh hội thoại rảnh tay |
 | 25 | Xe | CarPlay thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: entitlement, xe thật |
 | 26 | Xe | Android Auto thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: host và phê duyệt |
 | 27 | Xe | Bluetooth tự kết nối | Chưa xác minh | Cần quyền OS và test thiết bị |
 | 28 | Xe | OBD-II tùy chọn | Chưa xác minh | Cần adapter và giao thức |
 | 29 | Xe | Thông số xe thực tế | Chưa xác minh | docs/CAR_INTEGRATION.md: không telemetry |
-| 30 | Xe | Phát hiện mất kết nối | Một phần | lib/car_connection.dart; test/car_connection_test.dart; cần host thật |
+| 30 | Xe | Phát hiện mất kết nối | Một phần | PR #29 CarAudioGate: 7 job CI đạt; cần host thật |
 | 31 | Camera | Quản lý dung lượng | Một phần | docs/DASHCAM.md; test/dashcam_test.dart; cần test dung lượng thật |
 | 32 | Camera | Ghi vòng lặp | Một phần | docs/DASHCAM.md: foreground; cần thiết bị |
 | 33 | Camera | Khóa video sự kiện | Một phần | docs/DASHCAM.md: marker bảo vệ thủ công |
