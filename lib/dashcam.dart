@@ -10,6 +10,24 @@ const clipDuration = Duration(minutes: 5);
 
 bool isDashClip(String name) => RegExp(r'^trip_[0-9]+\.mp4$').hasMatch(name);
 
+// Publish a clip only after the temporary file has been completely copied.
+Future<File> saveDashClip(Directory directory, String name,
+    Future<void> Function(String) write) async {
+  if (!isDashClip(name)) throw ArgumentError.value(name, 'name');
+  final destination = File('${directory.path}/$name');
+  final pending = File('${destination.path}.part');
+  if (await destination.exists() || await pending.exists()) {
+    throw StateError('Clip already exists');
+  }
+  try {
+    await write(pending.path);
+    if (await pending.length() == 0) throw StateError('Empty clip');
+    return await pending.rename(destination.path);
+  } finally {
+    if (await pending.exists()) await pending.delete();
+  }
+}
+
 class DashCamScreen extends StatefulWidget {
   const DashCamScreen({super.key});
   @override
@@ -19,7 +37,8 @@ class DashCamScreen extends StatefulWidget {
 class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserver {
   CameraController? camera;
   Timer? timer;
-  bool busy = false, recording = false, foreground = true;
+  bool busy = false, recording = false, foreground = true, releasing = false;
+  bool releaseRequested = false;
   String status = 'Bật camera khi đã đỗ xe. Không ghi âm.';
   List<File> clips = [];
 
@@ -47,7 +66,7 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
   }
 
   Future<void> enable() async {
-    if (busy || camera != null) return;
+    if (busy || releasing || camera != null || !foreground) return;
     setState(() => busy = true);
     CameraController? pending;
     try {
@@ -66,12 +85,13 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       if (mounted) setState(() => status = 'Camera không khả dụng hoặc chưa cấp quyền');
     } finally {
       if (mounted) setState(() => busy = false);
+      if (mounted && releaseRequested) unawaited(release());
     }
   }
 
   Future<void> begin() async {
     final c = camera;
-    if (busy || recording || c == null || !foreground) return;
+    if (busy || releasing || recording || c == null || !foreground) return;
     if (clips.length >= maxClips) {
       setState(() => status = 'Đã đủ 20 video. Xóa video cũ trước khi quay.');
       return;
@@ -86,7 +106,7 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       if (mounted) setState(() => status = 'Không bắt đầu được video');
     } finally {
       if (mounted) setState(() => busy = false);
-      if (!foreground) unawaited(release());
+      if (mounted && (releaseRequested || !foreground)) unawaited(release());
     }
   }
 
@@ -98,8 +118,8 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
     try {
       final result = await c.stopVideoRecording();
       final dir = await directory();
-      final destination = '${dir.path}/trip_${DateTime.now().microsecondsSinceEpoch}.mp4';
-      await result.saveTo(destination);
+      final name = 'trip_${DateTime.now().microsecondsSinceEpoch}.mp4';
+      await saveDashClip(dir, name, result.saveTo);
       try { await File(result.path).delete(); } catch (_) {}
       if (mounted) setState(() => status = 'Đã lưu video hành trình');
       await refresh();
@@ -107,15 +127,27 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       if (mounted) setState(() => status = 'Không lưu được video');
     } finally {
       if (mounted) setState(() { recording = false; busy = false; });
+      if (mounted && releaseRequested && !releasing) unawaited(release());
     }
   }
 
   Future<void> release() async {
-    if (busy) return;
-    if (recording) await finish();
-    final c = camera;
-    if (mounted) setState(() => camera = null);
-    await c?.dispose();
+    if (!mounted || releasing) return;
+    if (busy) {
+      releaseRequested = true;
+      return;
+    }
+    setState(() { releasing = true; releaseRequested = false; });
+    try {
+      if (recording) await finish();
+      final c = camera;
+      if (mounted) setState(() => camera = null);
+      await c?.dispose();
+    } catch (_) {
+      if (mounted) setState(() => status = 'Không thể giải phóng camera');
+    } finally {
+      if (mounted) setState(() { releasing = false; releaseRequested = false; });
+    }
   }
 
   @override
@@ -150,22 +182,22 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !recording && !busy,
+    canPop: !recording && !busy && !releasing,
     child: Scaffold(appBar: AppBar(title: const Text('Camera hành trình')),
       body: ListView(padding: const EdgeInsets.all(12), children: [
         Text(status),
         if (camera?.value.isInitialized == true)
           AspectRatio(aspectRatio: camera!.value.aspectRatio, child: CameraPreview(camera!)),
         Wrap(spacing: 8, children: [
-          FilledButton(onPressed: busy || camera != null ? null : enable, child: const Text('Bật camera')),
-          FilledButton(onPressed: busy || camera == null ? null : recording ? finish : begin, child: Text(recording ? 'Dừng và lưu' : 'Quay video')),
-          OutlinedButton(onPressed: busy || camera == null ? null : release, child: const Text('Tắt camera')),
+          FilledButton(onPressed: busy || releasing || camera != null ? null : enable, child: const Text('Bật camera')),
+          FilledButton(onPressed: busy || releasing || camera == null ? null : recording ? finish : begin, child: Text(recording ? 'Dừng và lưu' : 'Quay video')),
+          OutlinedButton(onPressed: busy || releasing || camera == null ? null : release, child: const Text('Tắt camera')),
         ]),
         const Text('Mỗi đoạn tối đa 5 phút. Tối đa 20 đoạn; không tự xóa. Chỉ xem hoặc xóa khi đã đỗ xe.'),
         for (final clip in clips)
           ListTile(title: Text(clip.uri.pathSegments.last), leading: const Icon(Icons.movie),
-            onTap: recording || busy ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ClipScreen(file: clip))),
-            trailing: IconButton(tooltip: 'Xóa video', onPressed: recording || busy ? null : () => remove(clip), icon: const Icon(Icons.delete_outline))),
+            onTap: recording || busy || releasing ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ClipScreen(file: clip))),
+            trailing: IconButton(tooltip: 'Xóa video', onPressed: recording || busy || releasing ? null : () => remove(clip), icon: const Icon(Icons.delete_outline))),
       ]),
     ),
   );
