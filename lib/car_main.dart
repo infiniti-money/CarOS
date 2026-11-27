@@ -1,0 +1,109 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_carplay/flutter_carplay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main.dart' show InfinitiApp;
+import 'car_connection.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(CarHost(prefs: prefs));
+}
+
+class CarHost extends StatefulWidget {
+  const CarHost({super.key, required this.prefs});
+  final SharedPreferences prefs;
+  @override
+  State<CarHost> createState() => _CarHostState();
+}
+
+class _CarHostState extends State<CarHost> {
+  FlutterCarplay? ios;
+  FlutterAndroidAuto? android;
+  ConnectionStatusTypes status = ConnectionStatusTypes.unknown;
+  bool installing = false, retry = false;
+  int generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb || !const bool.fromEnvironment('CAROS_CAR_HOST')) return;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      ios = FlutterCarplay()..addListenerOnConnectionChange(changed);
+      unawaited(install());
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      android = FlutterAndroidAuto()..addListenerOnConnectionChange(changed);
+      if (FlutterAndroidAuto.connectionStatus == ConnectionStatusTypes.connected.name) {
+        changed(ConnectionStatusTypes.connected);
+      }
+    }
+  }
+
+  void changed(ConnectionStatusTypes next) {
+    if (!mounted) return;
+    final newConnection = next == ConnectionStatusTypes.connected && status != next;
+    setState(() => status = next);
+    if (newConnection && android != null) unawaited(install());
+  }
+
+  Future<void> install() async {
+    if (installing) { retry = true; return; }
+    installing = true;
+    final token = generation;
+    try {
+      // Reload because the phone UI may have changed parking state.
+      await widget.prefs.reload();
+      if (!mounted || token != generation) return;
+      final parking = parkingSummary(widget.prefs.getString('parking_location'));
+      if (ios != null) {
+        await FlutterCarplay.setRootTemplate(rootTemplate: CPListTemplate(
+          title: 'Infiniti CarOS',
+          sections: [CPListSection(items: [
+            CPListItem(text: 'Vị trí đỗ xe', detailText: parking,
+              onPress: (complete, item) async {
+                try {
+                  await widget.prefs.reload();
+                  item.setDetailText(parkingSummary(widget.prefs.getString('parking_location')));
+                } finally { await complete(); }
+              }),
+          ])],
+        ));
+      } else if (android != null && status == ConnectionStatusTypes.connected) {
+        await FlutterAndroidAuto.setRootTemplate(template: AAListTemplate(
+          title: 'Infiniti CarOS',
+          sections: [AAListSection(items: [
+            AAListItem(title: 'Vị trí đỗ xe', subtitle: parking,
+              onPress: (complete, item) async {
+                try { await widget.prefs.reload(); retry = true; }
+                finally { await complete(); }
+                if (mounted && status == ConnectionStatusTypes.connected) unawaited(install());
+              }),
+          ])],
+        ));
+      }
+    } catch (error) {
+      debugPrint('CarOS native root unavailable: ${error.runtimeType}');
+    } finally {
+      installing = false;
+      if (retry && mounted && token == generation) {
+        retry = false;
+        if (ios != null || status == ConnectionStatusTypes.connected) unawaited(install());
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    generation++;
+    ios?.removeListenerOnConnectionChange();
+    ios?.closeConnection();
+    android?.removeListenerOnConnectionChange();
+    android?.closeConnection();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => InfinitiApp(prefs: widget.prefs);
+}
