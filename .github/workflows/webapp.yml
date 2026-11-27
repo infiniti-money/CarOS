@@ -1,0 +1,39 @@
+name: Verify and deploy CarOS Web
+on:
+  pull_request:
+    paths: ['webapp/**', 'scripts/generate_web_icons.py', '.github/workflows/webapp.yml']
+  push:
+    branches: [main]
+    paths: ['webapp/**', 'scripts/generate_web_icons.py', '.github/workflows/webapp.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 scripts/generate_web_icons.py
+      - run: node --check webapp/app.js && node --check webapp/sw.js && node --test webapp/core.test.mjs
+      - run: python3 -m json.tool webapp/manifest.webmanifest > /dev/null
+      - run: rm webapp/core.test.mjs
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: webapp
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

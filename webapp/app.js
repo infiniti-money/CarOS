@@ -1,0 +1,23 @@
+(async()=>{
+const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs');
+const $=id=>document.getElementById(id),key='infiniti-caros-web-v1';
+let state={};try{const v=JSON.parse(localStorage.getItem(key)||'{}');if(v&&typeof v==='object'&&!Array.isArray(v))state=v;}catch{}
+function save(){try{localStorage.setItem(key,JSON.stringify(state));return true;}catch{return false;}}
+let watch=null,last=null,meters=0,epoch=0;
+function theme(){document.documentElement.dataset.theme=state.theme==='light'?'light':'dark';}
+theme();$('theme').onclick=()=>{state.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';theme();save();};
+function parking(){const p=state.parking;const ok=p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Number.isFinite(p.time);$('parking').textContent=ok?`Chỗ đỗ: ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${new Date(p.time).toLocaleString('vi-VN')}`:'Chưa lưu chỗ đỗ';$('park-map').hidden=!ok;if(ok)$('park-map').href=mapsUrl(p.lat+','+p.lon);else $('park-map').removeAttribute('href');}
+parking();
+function render(){const good=validFix(last);$('speed').textContent=speedText(last);$('park').disabled=!good||watch===null;if(watch!==null&&!good)$('gps').textContent='Đang chờ GPS đủ chính xác';}
+function stop(message='GPS đã dừng'){epoch++;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;last=null;$('start').disabled=false;$('stop').disabled=true;$('gps').textContent=message;render();}
+$('start').onclick=()=>{if(!isSecureContext||!navigator.geolocation){$('gps').textContent='Cần HTTPS và trình duyệt hỗ trợ GPS';return;}if(watch!==null)return;const token=++epoch;meters=0;last=null;$('distance').textContent='Quãng đường phiên: 0 km (ước tính)';$('gps').textContent='Đang xin quyền vị trí';$('start').disabled=true;$('stop').disabled=false;try{watch=navigator.geolocation.watchPosition(p=>{if(token!==epoch)return;if(!validFix(p)){last=null;render();return;}meters+=segment(last,p);last=p;$('gps').textContent=`GPS thật · sai số ${Math.ceil(p.coords.accuracy)} m`;$('distance').textContent=`Quãng đường phiên: ${(meters/1000).toFixed(2)} km (ước tính)`;render();},e=>{if(token===epoch)stop(e.code===1?'Chưa cấp quyền GPS':'Không lấy được GPS');},{enableHighAccuracy:true,maximumAge:0,timeout:12000});}catch{stop('Không bật được GPS');}};
+$('stop').onclick=()=>stop();
+$('park').onclick=()=>{if(!validFix(last)||watch===null||!confirm('Lưu vị trí này làm chỗ đỗ?'))return;if(!validFix(last))return;state.parking={lat:last.coords.latitude,lon:last.coords.longitude,time:last.timestamp};$('privacy').textContent=save()?'Đã lưu chỗ đỗ trên thiết bị':'Chỉ giữ trong phiên: không ghi được bộ nhớ';parking();};
+$('route').onsubmit=e=>{e.preventDefault();const q=$('destination').value.trim();if(q)window.open(mapsUrl(q),'_blank','noopener,noreferrer');};
+$('speak').onclick=()=>{if(!('speechSynthesis'in window)){ $('gps').textContent='Thiết bị không hỗ trợ đọc tiếng Việt';return;}const u=new SpeechSynthesisUtterance($('gps').textContent);u.lang='vi-VN';speechSynthesis.cancel();speechSynthesis.speak(u);};
+$('export').onclick=()=>{const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.href=url;a.download='caros-web-data.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('erase').onclick=()=>{if(!confirm('Xóa chỗ đỗ và tùy chọn CarOS Web trên thiết bị?'))return;stop();meters=0;$('distance').textContent='Quãng đường phiên: —';state={};try{localStorage.removeItem(key);$('privacy').textContent='Đã xóa dữ liệu CarOS Web';}catch{$('privacy').textContent='Không xóa được bộ nhớ trình duyệt';}theme();parking();};
+function network(){$('network').textContent=navigator.onLine?'Đang trực tuyến (trạng thái trình duyệt)':'Đang ngoại tuyến';}window.addEventListener('online',network);window.addEventListener('offline',network);network();
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&watch!==null)stop('GPS đã dừng khi ứng dụng vào nền');});window.addEventListener('pagehide',()=>{if(watch!==null)stop();});setInterval(render,1000);
+if('serviceWorker'in navigator&&isSecureContext){navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('offline').textContent='Đã chuẩn bị giao diện ngoại tuyến';}).catch(()=>{$('offline').textContent='Chưa chuẩn bị được giao diện ngoại tuyến';});}
+})().catch(()=>{document.getElementById('offline').textContent='Không khởi tạo được WebApp';});
