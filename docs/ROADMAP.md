@@ -47,8 +47,8 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 31 | Camera | Quản lý dung lượng | Một phần | docs/DASHCAM.md; test/dashcam_test.dart; cần test dung lượng thật |
 | 32 | Camera | Ghi vòng lặp | Một phần | docs/DASHCAM.md: foreground; cần thiết bị |
 | 33 | Camera | Khóa video sự kiện | Một phần | docs/DASHCAM.md: marker bảo vệ thủ công |
-| 34 | Camera | Xuất/chia sẻ | Chưa xác minh | Cần luồng xuất và quyền |
-| 35 | Camera | Khôi phục gián đoạn | Một phần | docs/DASHCAM.md: staging/lifecycle; chưa crash-proof |
+| 34 | Camera | Xuất/chia sẻ | Một phần | Dash Cam: bảng chia sẻ hệ điều hành, thao tác rõ ràng; cần QA iOS/Android |
+| 35 | Camera | Khôi phục gián đoạn | Một phần | Nhận diện tệp .part và dọn có xác nhận; chưa khôi phục video hỏng/crash-proof |
 | 36 | Camera | Quyền riêng tư | Một phần | docs/DASHCAM.md: lưu riêng, không upload; cần kiểm tra quyền |
 | 37 | An toàn | SOS thủ công | Một phần | safety_screen.dart: mở trình gọi sau xác nhận, không tự gọi; cần thiết bị |
 | 38 | An toàn | Chia sẻ vị trí tự nguyện | Một phần | safety_policy.dart: vị trí một lần, xem trước/sao chép tự nguyện, không tự gửi; cần thiết bị |
