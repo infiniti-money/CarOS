@@ -34,3 +34,38 @@ Uri? carAudioUri(String raw) {
   }
   return uri;
 }
+
+// Keep a loading lease until its owner finishes, even if stop invalidates it.
+// A new connection cannot start playback while an earlier load/stop is pending.
+class CarAudioGate {
+  int _epoch = 0;
+  int? _loading;
+  int _stops = 0;
+  bool _disposed = false;
+
+  int? beginPlay({required bool connected}) {
+    if (_disposed || !connected || _loading != null || _stops != 0) return null;
+    return _loading = ++_epoch;
+  }
+
+  bool current(int token, {required bool connected}) =>
+      !_disposed && connected && token == _epoch && _stops == 0;
+
+  void finishPlay(int token) {
+    if (_loading == token) _loading = null;
+  }
+
+  void beginStop() {
+    _epoch++;
+    _stops++;
+  }
+
+  void finishStop() {
+    if (_stops > 0) _stops--;
+  }
+
+  void dispose() {
+    _disposed = true;
+    _epoch++;
+  }
+}

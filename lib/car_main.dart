@@ -29,7 +29,7 @@ class _CarHostState extends State<CarHost> {
   int generation = 0;
   CarCategory category = CarCategory.unavailable;
   AudioPlayer? audio;
-  bool audioBusy = false;
+  final audioGate = CarAudioGate();
   static final stream = carAudioUri(const String.fromEnvironment('CAROS_CAR_AUDIO_URL'));
 
   @override
@@ -66,8 +66,8 @@ class _CarHostState extends State<CarHost> {
     final newConnection = next == ConnectionStatusTypes.connected && status != next;
     setState(() => status = next);
     if (newConnection && android != null) unawaited(install());
-    if (next == ConnectionStatusTypes.disconnected && audio != null) {
-      unawaited(audio!.stop().catchError((Object _) {}));
+    if (next != ConnectionStatusTypes.connected && audio != null) {
+      unawaited(stopCarAudio(audio!).catchError((Object _) {}));
     }
   }
 
@@ -119,6 +119,17 @@ class _CarHostState extends State<CarHost> {
     }
   }
 
+  Future<void> stopCarAudio(AudioPlayer player) async {
+    audioGate.beginStop();
+    try {
+      await player.stop();
+    } finally {
+      audioGate.finishStop();
+    }
+  }
+
+  bool get audioConnected => mounted && status == ConnectionStatusTypes.connected;
+
   Future<void> installAudio() async {
     final player = audio;
     if (player == null) return;
@@ -127,34 +138,40 @@ class _CarHostState extends State<CarHost> {
       sections: [CPListSection(items: [
         CPListItem(text: 'Phát radio', detailText: stream == null ? 'Chưa cấu hình nguồn HTTPS hợp lệ' : 'Nguồn radio được cấu hình',
           onPress: (complete, item) async {
+            int? lease;
             try {
-              if (stream == null || audioBusy || status != ConnectionStatusTypes.connected) return;
-              audioBusy = true;
+              if (stream == null) return;
+              final token = audioGate.beginPlay(connected: audioConnected);
+              if (token == null) return;
+              lease = token;
               await player.setUrl(stream.toString()).timeout(const Duration(seconds: 15));
-              if (!mounted || status != ConnectionStatusTypes.connected) {
-                await player.stop();
-                return;
-              }
+              if (!audioGate.current(token, connected: audioConnected)) return;
               unawaited(player.play().catchError((Object _) {
-                if (mounted) item.setDetailText('Không phát được radio');
+                if (audioGate.current(token, connected: audioConnected)) {
+                  item.setDetailText('Không phát được radio');
+                }
               }));
               item.setDetailText('Đã yêu cầu phát radio');
             } catch (_) {
-              item.setDetailText('Không tải được nguồn radio');
-              try { await player.stop(); } catch (_) {}
+              final token = lease;
+              if (token != null && audioGate.current(token, connected: audioConnected)) {
+                item.setDetailText('Không tải được nguồn radio');
+                try { await stopCarAudio(player); } catch (_) {}
+              }
             } finally {
-              audioBusy = false;
+              final token = lease;
+              if (token != null) audioGate.finishPlay(token);
               await complete();
             }
           }),
         CPListItem(text: 'Dừng radio', detailText: 'Chạm để dừng nguồn radio của CarOS',
           onPress: (complete, item) async {
             try {
-              if (audioBusy) return;
-              await player.stop();
-              item.setDetailText('Đã dừng radio');
+              if (!audioConnected) return;
+              await stopCarAudio(player);
+              if (audioConnected) item.setDetailText('Đã dừng radio');
             } catch (_) {
-              item.setDetailText('Không thể dừng radio');
+              if (audioConnected) item.setDetailText('Không thể dừng radio');
             } finally { await complete(); }
           }),
       ])],
@@ -164,6 +181,7 @@ class _CarHostState extends State<CarHost> {
   @override
   void dispose() {
     generation++;
+    audioGate.dispose();
     unawaited(audio?.dispose());
     ios?.removeListenerOnConnectionChange();
     ios?.closeConnection();
