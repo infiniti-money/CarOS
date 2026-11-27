@@ -13,3 +13,6 @@ Explicit parked confirmation plus a fresh conservative GPS speed/accuracy gate. 
 
 ## Xuất video và xử lý bản sao gián đoạn
 Từ màn hình xem clip đã khởi tạo được, nút Chia sẻ mở share sheet hệ điều hành (share_plus 12.0.2), kể cả video khóa; khóa không phải mã hóa. CarOS không tự tải lên, người dùng chọn ứng dụng nhận. Tạm dừng video khi mở chia sẻ hoặc ứng dụng ra nền. Các tệp .part đúng mẫu được liệt kê riêng, không giả định có thể phát; chỉ dọn theo xác nhận khi camera tắt. Không xóa clip hoàn chỉnh hoặc .lock; không tự phục hồi nội dung bị hỏng. Kiểm thử share sheet, iPad popover và gián đoạn thực tế vẫn cần. https://pub.dev/packages/share_plus/versions/12.0.2
+
+## Bảo toàn bản ghi khi không thể lưu (#35)
+Khi đã dừng camera nhưng lỗi quota/copy xảy ra, ưu tiên chuyển tệp gốc sang .part riêng tư; nếu phải copy qua volume khác, kiểm tra kích thước trước khi xóa nguồn. Nếu cả lưu và giữ bản tạm thất bại, không chủ động xóa nguồn camera (cache hệ điều hành vẫn có thể bị dọn). Đánh dấu bảo vệ trước khi công bố clip, không dọn bản tạm có .lock. Không tự phát hoặc khẳng định bản .part có thể khôi phục; có thể vượt quota video hoàn chỉnh, cần kiểm tra dung lượng thiết bị. Không bảo đảm phục hồi khi hệ điều hành kill process trong lúc camera đang ghi. Kiểm thử thiết bị vẫn bắt buộc.
