@@ -39,3 +39,6 @@ Bốn tab điện thoại: yêu thích và danh bạ CarOS lưu số do người
 Tái tạo tỷ lệ ảnh ngang 1536 × 710, launcher hai trang 4×2 (8 và 7 mục), biểu tượng SVG tự vẽ, dock nổi 85,6% chiều rộng, 16,7% chiều cao, tab điện thoại bốn mục và keypad 4×3 đúng thứ tự. Nhãn tiếng Anh theo ảnh mẫu. Không nhập ảnh chụp chứa thông tin cá nhân vào repo. Đồng hồ/GPS lấy dữ liệu thực; thời tiết chưa có nguồn thì —°. Calendar chưa đọc lịch, SMS mở ứng dụng hệ thống, Spotify/Podcasts mở dịch vụ chính thức. Bản đồ dùng nguồn OSM/DEM, không giả Apple Maps. E2E đo bố cục nhưng chưa có đối chiếu pixel hoặc thiết bị thật; không cam kết 100%.
 
 Organize apps: màn hình danh sách với công tắc bật/tắt và nút đổi vị trí; cài đặt không thể bị ẩn, tùy chọn lưu cục bộ, xóa dữ liệu khôi phục launcher.
+
+## Khắc phục cache giao diện
+HTML, stylesheet, entrypoint và các module nội bộ sử dụng cùng phiên bản URL v9. Service worker cài đặt shell bằng request cache reload, giữ vòng đời activation mặc định để không tải lại khi người dùng đang thao tác. Khi nâng cấp shell, tăng đồng bộ version các URL và cache name. Nếu một tab cũ vẫn giữ worker v8, đóng các tab CarOS rồi mở lại hoặc mở `?fresh=9` khi có mạng. Không tự xóa dữ liệu người dùng. Bài kiểm thử Chromium kiểm tra tài nguyên không version bị cũ, icon tròn, lưới 4 cột, 8 icon và SmartBar cố định ở viewport ngang nhỏ. Chưa xác minh Safari thật.
