@@ -34,3 +34,6 @@ Launcher biểu tượng tròn tự vẽ, SmartBar cố định có giờ thiế
 
 ## Giao diện v2
 Bốn tab điện thoại: yêu thích và danh bạ CarOS lưu số do người dùng tự chọn/nhập, gần đây chỉ ghi yêu cầu mở trình gọi (không khẳng định đã gọi), bàn phím. Không có truy cập lịch sử cuộc gọi hệ thống. Xóa dữ liệu xóa cả mục này. Thời gian đỗ tính từ timestamp đã lưu, khoảng cách đường chim bay chỉ khi GPS còn hợp lệ; ghi chú cục bộ. Tự động sáng/tối theo hệ thống, 3 hình nền CSS, tùy chọn tốc độ SmartBar, chế độ tập trung bản đồ. Không dùng ảnh/danh bạ mẫu làm dữ liệu hoặc tài sản repo; không có backend tài khoản. Cần kiểm thử E2E và thiết bị.
+
+## Đối chiếu ảnh tham chiếu
+Tái tạo tỷ lệ ảnh ngang 1536 × 710, launcher hai trang 4×2 (8 và 7 mục), biểu tượng SVG tự vẽ, dock nổi 85,6% chiều rộng, 16,7% chiều cao, tab điện thoại bốn mục và keypad 4×3 đúng thứ tự. Nhãn tiếng Anh theo ảnh mẫu. Không nhập ảnh chụp chứa thông tin cá nhân vào repo. Đồng hồ/GPS lấy dữ liệu thực; thời tiết chưa có nguồn thì —°. Calendar chưa đọc lịch, SMS mở ứng dụng hệ thống, Spotify/Podcasts mở dịch vụ chính thức. Bản đồ dùng nguồn OSM/DEM, không giả Apple Maps. E2E đo bố cục nhưng chưa có đối chiếu pixel hoặc thiết bị thật; không cam kết 100%.
