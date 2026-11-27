@@ -25,3 +25,17 @@ Nhập endpoint OSRM HTTPS hỗ trợ CORS và tọa độ đích; không nhập
 
 ## MapLibre, camera và radio
 MapLibre GL JS 6.19.0 được vendored trong workflow từ npm, không tải JavaScript CDN khi chạy; cần WebGL và DEM TileJSON HTTPS có CORS, giấy phép và ghi công. Không chọn nguồn DEM mặc định, không khẳng định có công trình 3D. OSM base chỉ online. Camera dùng getUserMedia/MediaRecorder không âm thanh, giới hạn mục tiêu 60 giây và bộ đệm 32 MiB; thời điểm chunk phụ thuộc browser, không phải quota cứng. Bản ghi chỉ trong phiên, tải thủ công; không ghi nền, không phục hồi khi crash. Radio dùng HTMLAudioElement và URL HTTPS do người dùng cung cấp, không có danh mục đài hoặc bảo đảm codec. Không lưu URL/địa hình/camera vào bộ nhớ lâu dài. Cần QA Safari/Chrome và provider/stream được phép. Tài liệu: https://maplibre.org/maplibre-gl-js/docs/examples/3d-terrain/ ; https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder .
+
+## Browser E2E
+CI chạy Chromium Playwright 1.56.1 với GPS mô phỏng của browser, camera giả lập của Chromium, OSRM/DEM/tile/radio fixture chặn mạng. Kiểm tra thao tác GPS, lưu chỗ đỗ, ETA, widget, xóa dữ liệu, MediaRecorder, audio, WebGL MapLibre và offline shell. Không thay thế QA Safari/iOS/Android, nguồn DEM/OSRM/đài thực hoặc camera phần cứng. Deployment phải qua cả Node và E2E.
+
+## Giao diện ô tô WebApp
+Launcher biểu tượng tròn tự vẽ, SmartBar cố định có giờ thiết bị và tốc độ GPS thật (— nếu thiếu), màn hình bản đồ/đỗ xe/giải trí/camera/cài đặt riêng và Tổng quan giữ widget cũ. Bàn phím gọi điện xác nhận mở tel:; Contact Picker chỉ nếu trình duyệt hỗ trợ, không đọc lịch sử cuộc gọi hay tự nhập danh bạ. Không sao chép ảnh mẫu, dữ liệu liên hệ, logo độc quyền, trạng thái tài khoản hoặc thời tiết giả. E2E bổ sung chuyển màn hình và bàn phím; runner Ubuntu 24.04 cho Playwright 1.56.1.
+
+## Giao diện v2
+Bốn tab điện thoại: yêu thích và danh bạ CarOS lưu số do người dùng tự chọn/nhập, gần đây chỉ ghi yêu cầu mở trình gọi (không khẳng định đã gọi), bàn phím. Không có truy cập lịch sử cuộc gọi hệ thống. Xóa dữ liệu xóa cả mục này. Thời gian đỗ tính từ timestamp đã lưu, khoảng cách đường chim bay chỉ khi GPS còn hợp lệ; ghi chú cục bộ. Tự động sáng/tối theo hệ thống, 3 hình nền CSS, tùy chọn tốc độ SmartBar, chế độ tập trung bản đồ. Không dùng ảnh/danh bạ mẫu làm dữ liệu hoặc tài sản repo; không có backend tài khoản. Cần kiểm thử E2E và thiết bị.
+
+## Đối chiếu ảnh tham chiếu
+Tái tạo tỷ lệ ảnh ngang 1536 × 710, launcher hai trang 4×2 (8 và 7 mục), biểu tượng SVG tự vẽ, dock nổi 85,6% chiều rộng, 16,7% chiều cao, tab điện thoại bốn mục và keypad 4×3 đúng thứ tự. Nhãn tiếng Anh theo ảnh mẫu. Không nhập ảnh chụp chứa thông tin cá nhân vào repo. Đồng hồ/GPS lấy dữ liệu thực; thời tiết chưa có nguồn thì —°. Calendar chưa đọc lịch, SMS mở ứng dụng hệ thống, Spotify/Podcasts mở dịch vụ chính thức. Bản đồ dùng nguồn OSM/DEM, không giả Apple Maps. E2E đo bố cục nhưng chưa có đối chiếu pixel hoặc thiết bị thật; không cam kết 100%.
+
+Organize apps: màn hình danh sách với công tắc bật/tắt và nút đổi vị trí; cài đặt không thể bị ẩn, tùy chọn lưu cục bộ, xóa dữ liệu khôi phục launcher.

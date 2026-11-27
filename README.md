@@ -17,3 +17,6 @@ Xem [ROADMAP](docs/ROADMAP.md). Giao diện kính hiện là hiệu ứng Flutte
 
 ## Gói CI và khôi phục
 Xem [quy trình xác minh APK và rollback](docs/RELEASE_RECOVERY.md). APK debug không phải bản phân phối chính thức; checksum không thay thế kiểm tra chữ ký.
+
+## WebApp / PWA
+[Mở Infiniti CarOS Web](https://infiniti-money.github.io/CarOS/) · [Hướng dẫn WebApp](docs/WEBAPP.md). GitHub Pages deploy run 46000492887 thành công. Bản web độc lập, chưa tương đương native; địa hình/định tuyến/radio cần nguồn hợp lệ, camera chỉ foreground.
