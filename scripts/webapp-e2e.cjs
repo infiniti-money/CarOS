@@ -1,0 +1,37 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const fs=require('node:fs');
+const path=require('node:path');
+const base='http://127.0.0.1:8080/';
+const tile=fs.readFileSync(path.join(__dirname,'../webapp/icons/icon-512.png'));
+function wav(){const n=8000*4,b=Buffer.alloc(44+n*2);b.write('RIFF',0);b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(8000,24);b.writeUInt32LE(16000,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*2,40);return b;}
+async function session(t){const browser=await chromium.launch({headless:true,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});t.after(()=>browser.close());const context=await browser.newContext({viewport:{width:1100,height:850},permissions:['geolocation','camera'],geolocation:{latitude:20,longitude:106,accuracy:5},serviceWorkers:'allow'});const page=await context.newPage();page.on('dialog',d=>d.accept());const errors=[];page.on('pageerror',e=>errors.push(e.message));return {context,page,errors};}
+async function ready(page){await page.goto(base);await page.waitForFunction(()=>typeof document.getElementById('start').onclick==='function');}
+async function text(page,id,part){await page.waitForFunction(([id,part])=>document.getElementById(id).textContent.includes(part),[id,part]);}
+test('dashboard, explicit GPS, parking, routed ETA, widgets, erase', {timeout:90000},async t=>{
+ const {context,page,errors}=await session(t);
+ await context.route('https://tile.openstreetmap.org/**',r=>r.fulfill({contentType:'image/png',body:tile,headers:{'access-control-allow-origin':'*'}}));
+ await context.route('https://routing.example/**',r=>r.fulfill({json:{code:'Ok',routes:[{distance:1200,duration:120,geometry:{type:'LineString',coordinates:[[106,20],[106,20.01]]}}]},headers:{'access-control-allow-origin':'*'}}));
+ await ready(page);assert.equal(await page.locator('#speed').textContent(),'— km/h');
+ await page.locator('#start').click();await text(page,'gps','GPS thật');await page.locator('#park').click();await text(page,'parking','20.00000');
+ await page.locator('#map-enable').click();await page.locator('#map-center').click();await page.waitForFunction(()=>document.querySelectorAll('#map-view img').length>0);
+ await page.locator('#route-provider').fill('https://routing.example');await page.locator('#route-lat').fill('20.01');await page.locator('#route-lon').fill('106');await page.locator('#route-calculate').click();await text(page,'route-status','1.2 km');await text(page,'route-progress','2 phút');await page.locator('.route-overlay polyline').waitFor();
+ await page.locator('#widget-editor summary').click();await page.locator('#widget-list .widget-row').first().getByRole('button',{name:'Ẩn',exact:true}).click();assert.equal(await page.locator('[data-widget=map]').isVisible(),false);
+ await page.locator('#erase').click();await text(page,'privacy','Đã xóa');assert.equal(await page.locator('#speed').textContent(),'— km/h');assert.equal(await page.locator('[data-widget=map]').isVisible(),true);assert.equal(await page.evaluate(()=>localStorage.getItem('infiniti-caros-web-v1')),null);assert.deepEqual(errors,[]);
+});
+test('camera recording with Chromium fake device and radio fixture', {timeout:90000},async t=>{
+ const {context,page,errors}=await session(t);await context.route('https://radio.example/**',r=>r.fulfill({contentType:'audio/wav',body:wav(),headers:{'access-control-allow-origin':'*'}}));await ready(page);
+ await page.locator('#camera-start').click();await text(page,'camera-status','Đang quay');await page.waitForFunction(()=>document.getElementById('camera-preview').readyState>=2);await page.waitForTimeout(1600);await page.locator('#camera-stop').click();await text(page,'camera-status','Đã ghi');assert.match(await page.locator('#camera-download').getAttribute('download'),/\.(mp4|webm)$/);assert.match(await page.locator('#camera-download').getAttribute('href'),/^blob:/);
+ await page.locator('#camera-delete').click();assert.equal(await page.locator('#camera-download').isVisible(),false);
+ await page.locator('#radio-url').fill('https://radio.example/live.wav');await page.locator('#radio-form button').click();await text(page,'radio-status','Đang phát radio');await page.locator('#radio-stop').click();await text(page,'radio-status','Đã dừng');assert.equal(await page.locator('#radio-audio').getAttribute('src'),null);assert.deepEqual(errors,[]);
+});
+test('MapLibre initializes real WebGL with synthetic terrain provider', {timeout:90000},async t=>{
+ const {context,page,errors}=await session(t);let demRequests=0;
+ await context.route('https://tile.openstreetmap.org/**',r=>r.fulfill({contentType:'image/png',body:tile,headers:{'access-control-allow-origin':'*'}}));
+ await context.route('https://terrain.example/**',r=>{if(r.request().url().endsWith('.json'))return r.fulfill({json:{tilejson:'2.2.0',tiles:['https://terrain.example/{z}/{x}/{y}.png'],minzoom:0,maxzoom:12},headers:{'access-control-allow-origin':'*'}});demRequests++;return r.fulfill({contentType:'image/png',body:tile,headers:{'access-control-allow-origin':'*'}});});
+ await ready(page);await page.locator('#dem-url').fill('https://terrain.example/tiles.json');await page.locator('#dem-credit').fill('Synthetic test DEM');await page.locator('#terrain-form button').click();await page.locator('#terrain-view canvas').waitFor({timeout:30000});await page.waitForFunction(()=>document.getElementById('terrain-status').textContent.includes('Đã khởi tạo'),null,{timeout:30000});assert.ok(demRequests>0);await page.locator('#terrain-stop').click();assert.equal(await page.locator('#terrain-view').isVisible(),false);assert.deepEqual(errors,[]);
+});
+test('PWA shell survives offline reload and narrow viewport', {timeout:90000},async t=>{
+ const {context,page,errors}=await session(t);await page.setViewportSize({width:390,height:844});await ready(page);await text(page,'offline','Đã chuẩn bị');await page.reload();await ready(page);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);await context.setOffline(true);await page.reload();await page.waitForFunction(()=>typeof document.getElementById('start').onclick==='function');assert.equal(await page.locator('#speed').textContent(),'— km/h');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+});

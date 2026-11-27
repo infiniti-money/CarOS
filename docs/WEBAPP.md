@@ -25,3 +25,6 @@ Nhập endpoint OSRM HTTPS hỗ trợ CORS và tọa độ đích; không nhập
 
 ## MapLibre, camera và radio
 MapLibre GL JS 6.19.0 được vendored trong workflow từ npm, không tải JavaScript CDN khi chạy; cần WebGL và DEM TileJSON HTTPS có CORS, giấy phép và ghi công. Không chọn nguồn DEM mặc định, không khẳng định có công trình 3D. OSM base chỉ online. Camera dùng getUserMedia/MediaRecorder không âm thanh, giới hạn mục tiêu 60 giây và bộ đệm 32 MiB; thời điểm chunk phụ thuộc browser, không phải quota cứng. Bản ghi chỉ trong phiên, tải thủ công; không ghi nền, không phục hồi khi crash. Radio dùng HTMLAudioElement và URL HTTPS do người dùng cung cấp, không có danh mục đài hoặc bảo đảm codec. Không lưu URL/địa hình/camera vào bộ nhớ lâu dài. Cần QA Safari/Chrome và provider/stream được phép. Tài liệu: https://maplibre.org/maplibre-gl-js/docs/examples/3d-terrain/ ; https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder .
+
+## Browser E2E
+CI chạy Chromium Playwright 1.56.1 với GPS mô phỏng của browser, camera giả lập của Chromium, OSRM/DEM/tile/radio fixture chặn mạng. Kiểm tra thao tác GPS, lưu chỗ đỗ, ETA, widget, xóa dữ liệu, MediaRecorder, audio, WebGL MapLibre và offline shell. Không thay thế QA Safari/iOS/Android, nguồn DEM/OSRM/đài thực hoặc camera phần cứng. Deployment phải qua cả Node và E2E.

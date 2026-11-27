@@ -1,10 +1,10 @@
 name: Verify and deploy CarOS Web
 on:
   pull_request:
-    paths: ['webapp/**', 'scripts/generate_web_icons.py', '.github/workflows/webapp.yml']
+    paths: ['webapp/**', 'scripts/generate_web_icons.py', 'scripts/webapp-e2e.cjs', '.github/workflows/webapp.yml']
   push:
     branches: [main]
-    paths: ['webapp/**', 'scripts/generate_web_icons.py', '.github/workflows/webapp.yml']
+    paths: ['webapp/**', 'scripts/generate_web_icons.py', 'scripts/webapp-e2e.cjs', '.github/workflows/webapp.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,6 +26,17 @@ jobs:
           test -s webapp/vendor/maplibre-gl.mjs
       - run: node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --check webapp/terrain.mjs && node --check webapp/media.mjs && node --test webapp/*.test.mjs
       - run: python3 -m json.tool webapp/manifest.webmanifest > /dev/null
+      - name: Install pinned browser test runner
+        run: |
+          npm install --prefix /tmp/caros-e2e --no-audit --no-fund playwright@1.56.1
+          /tmp/caros-e2e/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run browser end-to-end tests
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory webapp >/tmp/caros-web-server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && break; sleep 1; done
+          NODE_PATH=/tmp/caros-e2e/node_modules node --test scripts/webapp-e2e.cjs
       - run: rm webapp/*.test.mjs
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
