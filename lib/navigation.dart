@@ -514,5 +514,6 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
       if (configuredTiles) Text(tileAttribution, style: const TextStyle(fontSize: 11)),
       const Padding(padding: EdgeInsets.all(6), child: Text('Dẫn đường thử nghiệm, luôn tuân thủ biển báo. Chỉ thao tác khi đã đỗ xe.')),
     ]),
-  )  }
+    );
+  }
 }
