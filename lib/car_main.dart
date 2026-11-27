@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter_carplay/flutter_carplay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart' show InfinitiApp;
@@ -25,15 +27,33 @@ class _CarHostState extends State<CarHost> {
   ConnectionStatusTypes status = ConnectionStatusTypes.unknown;
   bool installing = false, retry = false;
   int generation = 0;
+  CarCategory category = CarCategory.unavailable;
+  AudioPlayer? audio;
+  bool audioBusy = false;
+  static final stream = carAudioUri(const String.fromEnvironment('CAROS_CAR_AUDIO_URL'));
 
   @override
   void initState() {
     super.initState();
     if (kIsWeb || !const bool.fromEnvironment('CAROS_CAR_HOST')) return;
+    unawaited(prepare());
+  }
+
+  Future<void> prepare() async {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
+      String? configured;
+      try {
+        configured = await const MethodChannel('infiniti/car_profile').invokeMethod<String>('category');
+      } catch (_) { return; }
+      if (!mounted) return;
+      category = carCategory(configured, ios: true);
+      if (category == CarCategory.unavailable) return;
+      if (category == CarCategory.audio) audio = AudioPlayer();
       ios = FlutterCarplay()..addListenerOnConnectionChange(changed);
       unawaited(install());
     } else if (defaultTargetPlatform == TargetPlatform.android) {
+      category = carCategory(const String.fromEnvironment('CAROS_ANDROID_CATEGORY', defaultValue: 'poi'), ios: false);
+      if (category != CarCategory.poi) return;
       android = FlutterAndroidAuto()..addListenerOnConnectionChange(changed);
       if (FlutterAndroidAuto.connectionStatus == ConnectionStatusTypes.connected.name) {
         changed(ConnectionStatusTypes.connected);
@@ -46,6 +66,9 @@ class _CarHostState extends State<CarHost> {
     final newConnection = next == ConnectionStatusTypes.connected && status != next;
     setState(() => status = next);
     if (newConnection && android != null) unawaited(install());
+    if (next == ConnectionStatusTypes.disconnected && audio != null) {
+      unawaited(audio!.stop().catchError((Object _) {}));
+    }
   }
 
   Future<void> install() async {
@@ -57,7 +80,9 @@ class _CarHostState extends State<CarHost> {
       await widget.prefs.reload();
       if (!mounted || token != generation) return;
       final parking = parkingSummary(widget.prefs.getString('parking_location'));
-      if (ios != null) {
+      if (ios != null && category == CarCategory.audio) {
+        await installAudio();
+      } else if (ios != null && category == CarCategory.drivingTask) {
         await FlutterCarplay.setRootTemplate(rootTemplate: CPListTemplate(
           title: 'Infiniti CarOS',
           sections: [CPListSection(items: [
@@ -94,9 +119,52 @@ class _CarHostState extends State<CarHost> {
     }
   }
 
+  Future<void> installAudio() async {
+    final player = audio;
+    if (player == null) return;
+    await FlutterCarplay.setRootTemplate(rootTemplate: CPListTemplate(
+      title: 'Âm thanh Infiniti',
+      sections: [CPListSection(items: [
+        CPListItem(text: 'Phát radio', detailText: stream == null ? 'Chưa cấu hình nguồn HTTPS hợp lệ' : 'Nguồn radio được cấu hình',
+          onPress: (complete, item) async {
+            try {
+              if (stream == null || audioBusy || status != ConnectionStatusTypes.connected) return;
+              audioBusy = true;
+              await player.setUrl(stream.toString()).timeout(const Duration(seconds: 15));
+              if (!mounted || status != ConnectionStatusTypes.connected) {
+                await player.stop();
+                return;
+              }
+              unawaited(player.play().catchError((Object _) {
+                if (mounted) item.setDetailText('Không phát được radio');
+              }));
+              item.setDetailText('Đã yêu cầu phát radio');
+            } catch (_) {
+              item.setDetailText('Không tải được nguồn radio');
+              try { await player.stop(); } catch (_) {}
+            } finally {
+              audioBusy = false;
+              await complete();
+            }
+          }),
+        CPListItem(text: 'Dừng radio', detailText: 'Chạm để dừng nguồn radio của CarOS',
+          onPress: (complete, item) async {
+            try {
+              if (audioBusy) return;
+              await player.stop();
+              item.setDetailText('Đã dừng radio');
+            } catch (_) {
+              item.setDetailText('Không thể dừng radio');
+            } finally { await complete(); }
+          }),
+      ])],
+    ));
+  }
+
   @override
   void dispose() {
     generation++;
+    unawaited(audio?.dispose());
     ios?.removeListenerOnConnectionChange();
     ios?.closeConnection();
     android?.removeListenerOnConnectionChange();
