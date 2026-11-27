@@ -16,3 +16,6 @@ Mở http://localhost:8080. GPS, service worker cần HTTPS hoặc localhost. Gi
 - #43: kiểm thử Node logic, chưa có kiểm thử browser E2E hoặc thiết bị.
 - Offline chỉ giao diện, không có tile offline (#6). Không thay thế #1–4, #16–18, #20–35, #37, #39, #41, #44–48 native.
 - CarPlay, Android Auto, OBD, Siri, camera nền và ký native vẫn thuộc bản Flutter. Không đánh dấu đạt đầy đủ.
+
+## Bản đồ 2D & giao diện kính
+Bản đồ raster Mercator tương tác, nút di chuyển/zoom, kéo thả, định tâm GPS/chỗ đỗ khi có dữ liệu, không tự gửi GPS trước khi bật bản đồ. Tile OSM chỉ tải vùng đang xem, ghi công hiển thị, không prefetch/cache offline trong service worker. Xem https://operations.osmfoundation.org/policies/tiles/ ; cần provider có SLA và giấy phép offline cho triển khai quy mô lớn. Theme kính CSS blur có fallback nền đặc; không phải Apple Liquid Glass native. Không có 3D, ETA hoặc định tuyến nội bộ. Kiểm thử hình học bằng Node, vẫn cần QA browser thật.
