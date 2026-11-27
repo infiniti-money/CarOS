@@ -28,8 +28,7 @@ class _LauncherEditorState extends State<LauncherEditor> {
           if (value != null) setState(() => wallpaper = value);
         })),
       Expanded(child: ReorderableListView(
-        onReorder: (oldIndex, newIndex) => setState(() {
-          if (newIndex > oldIndex) newIndex--;
+        onReorderItem: (oldIndex, newIndex) => setState(() {
           order.insert(newIndex, order.removeAt(oldIndex));
         }),
         children: [for (final item in order)
