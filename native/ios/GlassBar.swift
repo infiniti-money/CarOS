@@ -3,9 +3,12 @@ import SwiftUI
 private struct InfinitiGlassBar: View {
     let dark: Bool
     let action: (String) -> Void
+    let items: [String]
+    let columns: Int
     var body: some View {
         if #available(iOS 26.0, *) {
             GlassEffectContainer(spacing: 8) {
+                if items.isEmpty {
                 HStack(spacing: 6) {
                     item("map", "Bản đồ", "map")
                     item("music", "Âm nhạc", "music.note")
@@ -13,12 +16,38 @@ private struct InfinitiGlassBar: View {
                     item("voice", "Trợ lý", "mic")
                     item("settings", "Cài đặt", "gearshape")
                 }
+                } else {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: max(2, min(columns, 6))), spacing: 8) {
+                        ForEach(items, id: \.self) { label in
+                            launcher(label)
+                        }
+                    }
+                }
             }
             .preferredColorScheme(dark ? .dark : .light)
             .padding(4)
         } else {
             EmptyView()
         }
+    }
+
+    @available(iOS 26.0, *)
+    private func launcher(_ label: String) -> some View {
+        let symbols = ["Bản đồ": "map", "Bản đồ Apple": "location", "Giải trí": "music.note", "Spotify": "headphones", "Podcast": "mic.fill", "Trợ lý": "mic", "Điện thoại": "phone", "Lịch": "calendar", "Cài đặt": "gearshape"]
+        return Button { action(label) } label: {
+            VStack(spacing: 8) {
+                Image(systemName: symbols[label] ?? "square.grid.2x2")
+                    .font(.system(size: 27, weight: .medium))
+                    .frame(width: 62, height: 62)
+                    .glassEffect(.regular.interactive(), in: Circle())
+                Text(label).font(.caption).lineLimit(2).minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 104)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     @available(iOS 26.0, *)
@@ -41,9 +70,11 @@ private final class InfinitiGlassView: NSObject, FlutterPlatformView {
     init(frame: CGRect, id: Int64, args: Any?, messenger: FlutterBinaryMessenger) {
         let channel = FlutterMethodChannel(name: "infiniti/glass/actions/\(id)", binaryMessenger: messenger)
         let dark = (args as? [String: Any])?["dark"] as? Bool ?? true
-        host = UIHostingController(rootView: InfinitiGlassBar(dark: dark) { value in
+        let items = (args as? [String: Any])?["items"] as? [String] ?? []
+        let columns = (args as? [String: Any])?["columns"] as? Int ?? 3
+        host = UIHostingController(rootView: InfinitiGlassBar(dark: dark, action: { value in
             channel.invokeMethod("action", arguments: value)
-        })
+        }, items: items, columns: columns))
         super.init()
         host.view.frame = frame
         host.view.backgroundColor = .clear

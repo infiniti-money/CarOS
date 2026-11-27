@@ -95,11 +95,18 @@ class Dashboard extends StatelessWidget {
     return Scaffold(body: DecoratedBox(
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: dark ? const [Color(0xff101b2d), Color(0xff26364a)] : const [Color(0xffe3efff), Color(0xfff6f8fc)])),
       child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1000 ? 6 : constraints.maxWidth >= 760 ? 5 : constraints.maxWidth < 360 ? 2 : 3;
+        final split = constraints.maxWidth >= 900;
+        final columns = split ? 4 : constraints.maxWidth >= 760 ? 5 : constraints.maxWidth < 360 ? 2 : 3;
         final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: columns, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 144, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(width: 54, height: 54, decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [scheme.primaryContainer, scheme.surface])), child: Icon(e.$2, size: 30, color: scheme.onPrimaryContainer)), const SizedBox(height: 6),
           Flexible(child: Text(e.$1, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis)),
         ])))).toList());
+        final launcher = SmartBar(dark: dark, glass: glass, launcherItems: entries.map((e) => e.$1).toList(), columns: columns, fallback: tiles, onAction: (label) {
+          for (final entry in entries) {
+            if (entry.$1 == label) { entry.$3(); return; }
+          }
+        });
+        final trip = panel(context, TripPanel(prefs: prefs));
         return Column(children: [
           Expanded(child: ListView(padding: const EdgeInsets.all(12), children: [
             const Text('INFINITI', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 4)),
@@ -107,8 +114,11 @@ class Dashboard extends StatelessWidget {
             const SizedBox(height: 12),
             panel(context, const Row(children: [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Chế độ độc lập • Chưa kết nối xe'))])),
             const SizedBox(height: 12),
-            panel(context, TripPanel(prefs: prefs)),
-            const SizedBox(height: 12), tiles,
+            if (split) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(flex: 4, child: trip),
+              const SizedBox(width: 12),
+              Expanded(flex: 6, child: launcher),
+            ]) else ...[trip, const SizedBox(height: 12), launcher],
           ])),
           Padding(padding: const EdgeInsets.all(12), child: SmartBar(
             dark: dark, glass: glass, onAction: (action) {

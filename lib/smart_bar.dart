@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class SmartBar extends StatefulWidget {
-  const SmartBar({super.key, required this.dark, required this.glass, required this.onAction});
+  const SmartBar({super.key, required this.dark, required this.glass, required this.onAction, this.launcherItems = const [], this.columns = 3, this.fallback});
   final bool dark, glass;
   final ValueChanged<String> onAction;
+  final List<String> launcherItems;
+  final int columns;
+  final Widget? fallback;
   @override
   State<SmartBar> createState() => _SmartBarState();
 }
@@ -38,7 +41,8 @@ class _SmartBarState extends State<SmartBar> {
     channel.setMethodCallHandler((call) async {
       if (mounted && call.method == 'action' && call.arguments is String) {
         final action = call.arguments as String;
-        if (const ['map','music','theme','voice','settings'].contains(action)) {
+        if (widget.launcherItems.contains(action) ||
+            (widget.launcherItems.isEmpty && const ['map','music','theme','voice','settings'].contains(action))) {
           widget.onAction(action);
         }
       }
@@ -54,13 +58,14 @@ class _SmartBarState extends State<SmartBar> {
   @override
   Widget build(BuildContext context) {
     if (native && widget.glass) {
-      return SizedBox(height: 74, child: UiKitView(
-        key: ValueKey(widget.dark), viewType: 'infiniti/glassbar',
-        creationParams: {'dark': widget.dark},
+      return SizedBox(height: widget.launcherItems.isEmpty ? 74 : (widget.launcherItems.length / widget.columns).ceil() * 120.0, child: UiKitView(
+        key: ValueKey('${widget.dark}-${widget.columns}-${widget.launcherItems.join(',')}'), viewType: 'infiniti/glassbar',
+        creationParams: {'dark': widget.dark, 'items': widget.launcherItems, 'columns': widget.columns},
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: created,
       ));
     }
+    if (widget.fallback != null) return widget.fallback!;
     final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surface.withValues(alpha: widget.glass ? .8 : 1), borderRadius: BorderRadius.circular(28), border: Border.all(color: colors.outlineVariant)),
