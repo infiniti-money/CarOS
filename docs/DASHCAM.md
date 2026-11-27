@@ -4,3 +4,6 @@ Dependencies: https://pub.dev/packages/camera ; https://pub.dev/packages/video_p
 
 ## Reliability follow-up
 Camera release requests are retained if an operation is busy, and retried after start/stop/initialize completes. Release is guarded against concurrent calls. Clips are first copied to a private .part staging file, checked for nonzero length, then renamed; failed copies are cleaned up, and existing names are not overwritten. Device lifecycle and filesystem interruption still need physical-device testing; a crash may leave a .part file that is not listed as a clip.
+
+## Loop recording and quota
+Opt-in loop rotates five-minute segments while the screen stays foreground. The library targets 1 GiB and 20 clips. Existing clips can be protected with persistent local .lock markers; a current segment can be marked before saving. Only oldest unprotected clips may be automatically removed, only after successful copy. If no admissible plan exists, recording stops. The quota is not a hard bound on temporary recording or copy space; interrupted deletion or protection failures can leave the library over quota, stop recording and require review. No background recording, seamless transition, or recovery guarantee. Test on a parked physical device before use.

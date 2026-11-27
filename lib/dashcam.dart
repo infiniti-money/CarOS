@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'dashcam_policy.dart';
 
 const maxClips = 20;
 const clipDuration = Duration(minutes: 5);
@@ -41,6 +42,9 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
   bool releaseRequested = false;
   String status = 'Bật camera khi đã đỗ xe. Không ghi âm.';
   List<File> clips = [];
+  Set<String> protectedNames = {};
+  int libraryBytes = 0;
+  bool loop = false, protectCurrent = false, libraryReady = false;
 
   @override
   void initState() {
@@ -54,14 +58,32 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
     return Directory('${base.path}/dashcam').create(recursive: true);
   }
 
+  Future<List<ClipRecord>> readLibrary(Directory dir) async {
+    final records = <ClipRecord>[];
+    await for (final entry in dir.list(followLinks: false)) {
+      final name = entry.uri.pathSegments.last;
+      if (entry is! File || !isDashClip(name)) continue;
+      final locked = await File('${entry.path}.lock').exists();
+      final stamp = int.parse(name.substring(5, name.length - 4));
+      records.add(ClipRecord(name, await entry.length(), locked, stamp));
+    }
+    return records;
+  }
+
   Future<void> refresh() async {
     try {
       final dir = await directory();
       final rows = await dir.list(followLinks: false).where((e) => e is File && isDashClip(e.uri.pathSegments.last)).cast<File>().toList();
       rows.sort((a,b) => b.path.compareTo(a.path));
-      if (mounted) setState(() => clips = rows);
+      final records = await readLibrary(dir);
+      if (mounted) setState(() {
+        clips = rows;
+        protectedNames = records.where((c) => c.locked).map((c) => c.name).toSet();
+        libraryBytes = records.fold(0, (sum, c) => sum + c.bytes);
+        libraryReady = true;
+      });
     } catch (_) {
-      if (mounted) setState(() => status = 'Không đọc được video đã lưu');
+      if (mounted) setState(() { libraryReady = false; status = 'Không đọc được video đã lưu'; });
     }
   }
 
@@ -91,17 +113,19 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
 
   Future<void> begin() async {
     final c = camera;
-    if (busy || releasing || recording || c == null || !foreground) return;
-    if (clips.length >= maxClips) {
-      setState(() => status = 'Đã đủ 20 video. Xóa video cũ trước khi quay.');
-      return;
-    }
+    if (busy || releasing || recording || c == null || !foreground || !libraryReady) return;
     setState(() => busy = true);
     try {
+      final existing = await readLibrary(await directory());
+      if (planClipEviction(existing, 1, loop: loop) == null) {
+        if (mounted) setState(() => status = 'Kho video đã đầy hoặc mọi video đều được khóa.');
+        return;
+      }
+      if (!mounted || !foreground || releaseRequested) return;
       await c.startVideoRecording();
       if (!mounted) return;
-      setState(() { recording = true; status = 'ĐANG QUAY • Không ghi âm'; });
-      timer = Timer(clipDuration, () => unawaited(finish()));
+      setState(() { recording = true; protectCurrent = false; status = 'ĐANG QUAY • Không ghi âm'; });
+      timer = Timer(clipDuration, () => unawaited(finish(rotate: true)));
     } catch (_) {
       if (mounted) setState(() => status = 'Không bắt đầu được video');
     } finally {
@@ -110,24 +134,47 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
     }
   }
 
-  Future<void> finish() async {
+  Future<void> finish({bool rotate = false}) async {
     final c = camera;
     if (busy || !recording || c == null) return;
     timer?.cancel();
     setState(() => busy = true);
+    var saved = false;
     try {
       final result = await c.stopVideoRecording();
       final dir = await directory();
       final name = 'trip_${DateTime.now().microsecondsSinceEpoch}.mp4';
-      await saveDashClip(dir, name, result.saveTo);
-      try { await File(result.path).delete(); } catch (_) {}
+      final source = File(result.path);
+      try {
+        final records = await readLibrary(dir);
+        final removeNames = planClipEviction(records, await source.length(), loop: loop);
+        if (removeNames == null) throw StateError('Không đủ dung lượng video');
+        // Only delete after the new clip has been copied successfully.
+        final file = await saveDashClip(dir, name, result.saveTo);
+        if (protectCurrent) await File('${file.path}.lock').writeAsString('protected', flush: true);
+        for (final old in removeNames) {
+          final target = File('${dir.path}/$old');
+          if (await File('${target.path}.lock').exists()) {
+            throw StateError('Video protected');
+          }
+          await target.delete();
+        }
+        saved = true;
+      } finally {
+        try { await source.delete(); } catch (_) {}
+        await refresh();
+      }
       if (mounted) setState(() => status = 'Đã lưu video hành trình');
       await refresh();
     } catch (_) {
-      if (mounted) setState(() => status = 'Không lưu được video');
+      if (mounted) setState(() => status = 'Dừng quay: không đủ dung lượng hoặc lỗi lưu video');
     } finally {
       if (mounted) setState(() { recording = false; busy = false; });
-      if (mounted && releaseRequested && !releasing) unawaited(release());
+      if (mounted && releaseRequested && !releasing) {
+        unawaited(release());
+      } else if (mounted && saved && rotate && loop && foreground && !releasing) {
+        unawaited(begin());
+      }
     }
   }
 
@@ -158,7 +205,26 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> toggleProtection(File file) async {
+    if (busy || recording || releasing) return;
+    setState(() => busy = true);
+    try {
+      final lock = File('${file.path}.lock');
+      if (await lock.exists()) {
+        await lock.delete();
+      } else {
+        await lock.writeAsString('protected', flush: true);
+      }
+      await refresh();
+    } catch (_) {
+      if (mounted) setState(() => status = 'Không cập nhật được khóa video');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Future<void> remove(File file) async {
+    if (busy || recording || releasing || protectedNames.contains(file.uri.pathSegments.last)) return;
     final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
       title: const Text('Xóa video?'),
       content: const Text('Video sẽ bị xóa khỏi bộ nhớ của CarOS.'),
@@ -168,7 +234,10 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       ],
     ));
     if (ok != true || !mounted) return;
-    try { await file.delete(); await refresh(); }
+    try {
+      if (await File('${file.path}.lock').exists()) return;
+      await file.delete(); await refresh();
+    }
     catch (_) { if (mounted) setState(() => status = 'Không xóa được video'); }
   }
 
@@ -193,11 +262,17 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
           FilledButton(onPressed: busy || releasing || camera == null ? null : recording ? finish : begin, child: Text(recording ? 'Dừng và lưu' : 'Quay video')),
           OutlinedButton(onPressed: busy || releasing || camera == null ? null : release, child: const Text('Tắt camera')),
         ]),
-        const Text('Mỗi đoạn tối đa 5 phút. Tối đa 20 đoạn; không tự xóa. Chỉ xem hoặc xóa khi đã đỗ xe.'),
+        SwitchListTile(title: const Text('Ghi vòng lặp'), subtitle: const Text('Khi đầy, tự xóa video cũ nhất chưa khóa. Chỉ bật khi đã đỗ xe.'), value: loop, onChanged: busy || recording || releasing ? null : (value) => setState(() => loop = value)),
+        if (recording) OutlinedButton.icon(onPressed: busy ? null : () => setState(() => protectCurrent = !protectCurrent), icon: Icon(protectCurrent ? Icons.lock : Icons.lock_open), label: Text(protectCurrent ? 'Đoạn hiện tại đã được đánh dấu' : 'Bảo vệ đoạn đang quay')),
+        Text('Kho video: ${(libraryBytes / 1048576).toStringAsFixed(1)} / 1024 MiB • ${clips.length}/20 đoạn'),
+        const Text('Mỗi đoạn tối đa 5 phút. Dừng khi hết dung lượng; giới hạn áp dụng cho video đã lưu, không gồm tệp đang ghi. Chỉ xem hoặc xóa khi đã đỗ xe.'),
         for (final clip in clips)
           ListTile(title: Text(clip.uri.pathSegments.last), leading: const Icon(Icons.movie),
             onTap: recording || busy || releasing ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ClipScreen(file: clip))),
-            trailing: IconButton(tooltip: 'Xóa video', onPressed: recording || busy || releasing ? null : () => remove(clip), icon: const Icon(Icons.delete_outline))),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(tooltip: protectedNames.contains(clip.uri.pathSegments.last) ? 'Bỏ khóa video' : 'Bảo vệ video', onPressed: recording || busy || releasing ? null : () => toggleProtection(clip), icon: Icon(protectedNames.contains(clip.uri.pathSegments.last) ? Icons.lock : Icons.lock_open)),
+              IconButton(tooltip: 'Xóa video', onPressed: recording || busy || releasing || protectedNames.contains(clip.uri.pathSegments.last) ? null : () => remove(clip), icon: const Icon(Icons.delete_outline)),
+            ])),
       ]),
     ),
   );
