@@ -18,6 +18,8 @@ jobs:
       - run: flutter create --platforms=android --org com.infinitimoney --project-name infiniti_caros .
       - run: rm -f test/widget_test.dart
       - run: python3 scripts/configure_location.py android
+      - run: python3 -m unittest discover -s scripts -p test_configure_phone_audio.py
+      - run: python3 scripts/configure_phone_audio.py android
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -36,6 +38,7 @@ jobs:
           flutter-version: '3.44.2'
       - run: flutter create --platforms=ios --org com.infinitimoney --project-name infiniti_caros .
       - run: python3 scripts/configure_location.py ios
+      - run: python3 scripts/configure_phone_audio.py ios
       - run: python3 scripts/configure_ios_floor.py
       - run: flutter pub get
       - run: flutter build ios --simulator --debug
