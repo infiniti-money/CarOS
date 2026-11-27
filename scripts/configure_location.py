@@ -9,7 +9,7 @@ if sys.argv[1] == 'android':
     ET.register_namespace('android', ns)
     tree = ET.parse(path)
     root = tree.getroot()
-    for permission in ('ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'):
+    for permission in ('ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'INTERNET'):
         name = 'android.permission.' + permission
         if not any(e.get('{'+ns+'}name') == name for e in root.findall('uses-permission')):
             root.insert(0, ET.Element('uses-permission', {'{'+ns+'}name': name}))
