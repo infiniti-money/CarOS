@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
@@ -28,6 +29,34 @@ List<Episode> parseEpisodes(String rss) {
   }).whereType<Episode>().take(100).toList();
 }
 
+Future<List<Episode>> fetchPodcast(Uri uri, http.Client client, {
+  Duration timeout = const Duration(seconds: 15),
+  int maxBytes = 2000000,
+}) async {
+  if (secureMediaUri(uri.toString()) == null) {
+    throw const FormatException('HTTPS RSS required');
+  }
+  final request = http.Request('GET', uri)..followRedirects = false;
+  final response = await client.send(request).timeout(timeout);
+  if (response.statusCode != 200 ||
+      (response.contentLength ?? 0) > maxBytes) {
+    final subscription = response.stream.listen((_) {});
+    await subscription.cancel();
+    throw const FormatException('RSS response rejected');
+  }
+  final bytes = <int>[];
+  await response.stream.timeout(timeout).forEach((chunk) {
+    if (bytes.length + chunk.length > maxBytes) {
+      throw const FormatException('RSS too large');
+    }
+    bytes.addAll(chunk);
+  }).timeout(timeout, onTimeout: () {
+    client.close();
+    throw TimeoutException('RSS download exceeded deadline');
+  });
+  return parseEpisodes(utf8.decode(bytes));
+}
+
 class EntertainmentScreen extends StatefulWidget {
   const EntertainmentScreen({super.key});
   @override
@@ -38,7 +67,7 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
   final player = AudioPlayer();
   final source = TextEditingController();
   final feed = TextEditingController();
-  final client = http.Client();
+  http.Client? feedClient;
   List<Episode> episodes = [];
   String message = 'Chọn nguồn âm thanh HTTPS hợp pháp';
   String title = 'Chưa chọn nội dung';
@@ -65,7 +94,10 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
       setState(() { title = name; hasSource = true; message = 'Đã tải nguồn'; });
       unawaited(resume());
     } catch (_) {
-      if (mounted) setState(() => message = 'Nguồn âm thanh không khả dụng');
+      if (mounted) {
+        try { await player.stop(); } catch (_) {}
+        if (mounted) setState(() => message = 'Nguồn âm thanh không khả dụng');
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -73,6 +105,9 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
 
   Future<void> resume() async {
     try {
+      if (player.processingState == ProcessingState.completed) {
+        await player.seek(Duration.zero);
+      }
       await player.play();
     } catch (_) {
       if (mounted) setState(() => message = 'Không thể phát âm thanh');
@@ -89,25 +124,22 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
 
   Future<void> loadFeed() async {
     final uri = secureMediaUri(feed.text);
-    if (uri == null || loadingFeed) {
+    if (loadingFeed) return;
+    if (uri == null) {
       setState(() => message = 'Nhập địa chỉ RSS HTTPS hợp lệ');
       return;
     }
     setState(() { loadingFeed = true; episodes = []; });
+    final client = http.Client();
+    feedClient = client;
     try {
-      final request = http.Request('GET', uri)..followRedirects = false;
-      final response = await client.send(request).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) throw FormatException('HTTP ${response.statusCode}');
-      final bytes = <int>[];
-      await for (final chunk in response.stream.timeout(const Duration(seconds: 15))) {
-        bytes.addAll(chunk);
-        if (bytes.length > 2000000) throw const FormatException('RSS too large');
-      }
-      final parsed = parseEpisodes(http.Response.bytes(bytes, 200, headers: {'content-type':'application/xml; charset=utf-8'}).body);
+      final parsed = await fetchPodcast(uri, client);
       if (mounted) setState(() { episodes = parsed; message = parsed.isEmpty ? 'Không tìm thấy tập âm thanh HTTPS' : 'Đã tải ${parsed.length} tập'; });
     } catch (_) {
       if (mounted) setState(() => message = 'Không tải được RSS; kiểm tra URL trực tiếp');
     } finally {
+      client.close();
+      if (identical(feedClient, client)) feedClient = null;
       if (mounted) setState(() => loadingFeed = false);
     }
   }
@@ -124,7 +156,7 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
   void dispose() {
     unawaited(errors?.cancel());
     unawaited(player.dispose());
-    client.close();
+    feedClient?.close();
     source.dispose();
     feed.dispose();
     super.dispose();
@@ -138,7 +170,7 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
       Text(message),
       StreamBuilder<PlayerState>(stream: player.playerStateStream, builder: (context, snapshot) {
         final state = snapshot.data;
-        final playing = state?.playing ?? false;
+        final playing = (state?.playing ?? false) && state?.processingState != ProcessingState.completed;
         final processing = state?.processingState;
         final waiting = processing == ProcessingState.loading || processing == ProcessingState.buffering;
         return Row(children: [
@@ -160,8 +192,8 @@ class _EntertainmentScreenState extends State<EntertainmentScreen> {
       OutlinedButton(onPressed: loadingFeed ? null : loadFeed, child: const Text('Tải danh sách tập')),
       for (final episode in episodes) ListTile(title: Text(episode.title), trailing: const Icon(Icons.play_arrow), onTap: busy ? null : () => playSource(episode.uri, episode.title)),
       const Divider(),
-      ListTile(title: const Text('Spotify'), subtitle: const Text('Mở dịch vụ chính thức • Chưa kết nối API'), onTap: () => external('https://open.spotify.com/')),
-      ListTile(title: const Text('Apple Music'), subtitle: const Text('Mở dịch vụ chính thức • Chưa tích hợp MusicKit'), onTap: () => external('https://music.apple.com/')),
+      ListTile(title: const Text('Spotify'), subtitle: const Text('Mở dịch vụ chính thức • Chưa kết nối API'), onTap: busy ? null : () => external('https://open.spotify.com/')),
+      ListTile(title: const Text('Apple Music'), subtitle: const Text('Mở dịch vụ chính thức • Chưa tích hợp MusicKit'), onTap: busy ? null : () => external('https://music.apple.com/')),
       const Text('Chỉ nhập nguồn tin cậy và thao tác khi đã đỗ xe.'),
     ]),
   );
