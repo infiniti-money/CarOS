@@ -32,6 +32,10 @@ elif sys.argv[1] == 'ios':
     data['NSContactsUsageDescription'] = 'Hiển thị danh bạ để bạn chọn người gọi.'
     data['NSCalendarsUsageDescription'] = 'Hiển thị lịch sắp tới khi bạn yêu cầu.'
     data['NSCalendarsFullAccessUsageDescription'] = 'Đọc lịch sắp tới; CarOS không sửa lịch trong phiên bản này.'
+    data['CFBundleDevelopmentRegion'] = 'vi'
+    data['CFBundleLocalizations'] = ['vi']
     path.write_bytes(plistlib.dumps(data))
+    from configure_glass import configure_glass
+    configure_glass()
 else:
     raise SystemExit('Expected android or ios')

@@ -3,6 +3,8 @@ import 'trip.dart';
 import 'entertainment.dart';
 import 'communication.dart';
 import 'navigation.dart';
+import 'smart_bar.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,6 +29,9 @@ class _InfinitiAppState extends State<InfinitiApp> {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Infiniti CarOS',
     debugShowCheckedModeBanner: false,
+    locale: const Locale('vi'),
+    supportedLocales: const [Locale('vi')],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     theme: ThemeData(colorSchemeSeed: const Color(0xff4789db), brightness: dark ? Brightness.dark : Brightness.light, useMaterial3: true),
     home: Dashboard(prefs: widget.prefs, dark: dark, glass: glass, onDark: (v) {
       setState(() => dark = v);
@@ -78,7 +83,7 @@ class Dashboard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final entries = <(String, IconData, VoidCallback)>[
       ('Bản đồ', Icons.map_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen()))),
-      ('Apple Maps', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
+      ('Bản đồ Apple', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
       ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen()))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
       ('Podcast', Icons.podcasts, () => open(context, 'https://podcasts.apple.com/')),
@@ -90,9 +95,9 @@ class Dashboard extends StatelessWidget {
     return Scaffold(body: DecoratedBox(
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: dark ? const [Color(0xff101b2d), Color(0xff26364a)] : const [Color(0xffe3efff), Color(0xfff6f8fc)])),
       child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 650;
-        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: wide ? 6 : 3, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 144, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(e.$2, size: 30, color: scheme.primary), const SizedBox(height: 6),
+        final columns = constraints.maxWidth >= 1000 ? 6 : constraints.maxWidth >= 760 ? 5 : constraints.maxWidth < 360 ? 2 : 3;
+        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: columns, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 144, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(width: 54, height: 54, decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [scheme.primaryContainer, scheme.surface])), child: Icon(e.$2, size: 30, color: scheme.onPrimaryContainer)), const SizedBox(height: 6),
           Flexible(child: Text(e.$1, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis)),
         ])))).toList());
         return Column(children: [
@@ -105,13 +110,17 @@ class Dashboard extends StatelessWidget {
             panel(context, TripPanel(prefs: prefs)),
             const SizedBox(height: 12), tiles,
           ])),
-          Padding(padding: const EdgeInsets.all(12), child: panel(context, Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            IconButton(tooltip: 'Bản đồ', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())), icon: const Icon(Icons.map)),
-            IconButton(tooltip: 'Âm nhạc', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())), icon: const Icon(Icons.music_note)),
-            IconButton(tooltip: 'Đổi chế độ sáng tối', onPressed: () => onDark(!dark), icon: Icon(dark ? Icons.light_mode : Icons.dark_mode)),
-            IconButton(tooltip: 'Trợ lý tiếng Việt', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())), icon: const Icon(Icons.mic_none)),
-            IconButton(tooltip: 'Cài đặt', onPressed: () => settings(context), icon: const Icon(Icons.settings)),
-          ]))),
+          Padding(padding: const EdgeInsets.all(12), child: SmartBar(
+            dark: dark, glass: glass, onAction: (action) {
+              switch (action) {
+                case 'map': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())); break;
+                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EntertainmentScreen())); break;
+                case 'theme': onDark(!dark); break;
+                case 'voice': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())); break;
+                case 'settings': settings(context); break;
+              }
+            },
+          )),
         ]);
       })),
     ));
