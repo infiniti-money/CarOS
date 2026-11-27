@@ -8,6 +8,7 @@ import 'dashcam.dart';
 import 'launcher_prefs.dart';
 import 'launcher_editor.dart';
 import 'safety_screen.dart';
+import 'privacy_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -98,6 +99,7 @@ class Dashboard extends StatelessWidget {
         SwitchListTile(title: const Text('Chế độ tối'), value: localDark, onChanged: (v) { refresh(() => localDark = v); onDark(v); }),
         SwitchListTile(title: const Text('Hiệu ứng kính'), value: localGlass, onChanged: (v) { refresh(() => localGlass = v); onGlass(v); }),
         ListTile(title: const Text('Tùy chỉnh Launcher'), subtitle: const Text('Thứ tự, hiển thị, hình nền và tự động sáng/tối'), onTap: () { Navigator.pop(context); editLauncher(thisContext); }),
+        ListTile(title: const Text('Quyền riêng tư và dữ liệu'), onTap: () { Navigator.pop(context); Navigator.of(thisContext).push(MaterialPageRoute<void>(builder: (_) => PrivacyScreen(prefs: prefs))); }),
         const ListTile(title: Text('Infiniti CarOS 2.5'), subtitle: Text('Bản nền tảng • Chưa kết nối dữ liệu xe')),
       ])));
     });

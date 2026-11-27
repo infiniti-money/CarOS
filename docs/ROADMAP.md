@@ -53,9 +53,9 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 37 | An toàn | SOS thủ công | Một phần | safety_screen.dart: mở trình gọi sau xác nhận, không tự gọi; cần thiết bị |
 | 38 | An toàn | Chia sẻ vị trí tự nguyện | Một phần | safety_policy.dart: vị trí một lần, xem trước/sao chép tự nguyện, không tự gửi; cần thiết bị |
 | 39 | An toàn | Hạn chế thao tác khi lái | Một phần | docs/DASHCAM.md: gate Face Control; cần toàn app |
-| 40 | An toàn | Quản lý quyền | Một phần | docs/GPS.md; docs/COMMUNICATION.md; cần test từ chối/thu hồi |
+| 40 | An toàn | Quản lý quyền | Một phần | PrivacyScreen mở cài đặt ứng dụng; cần test từ chối/thu hồi quyền trên thiết bị |
 | 41 | An toàn | Bảo mật token | Chưa xác minh | Cần secure storage khi có OAuth |
-| 42 | An toàn | Xóa/xuất dữ liệu cá nhân | Một phần | docs/GPS.md: xóa tọa độ; cần toàn bộ dữ liệu |
+| 42 | An toàn | Xóa/xuất dữ liệu cá nhân | Một phần | Xuất/xóa có chọn lọc lịch sử, chỗ đỗ, phiên phát; video quản lý riêng; cần QA |
 | 43 | Hệ thống | Hồi quy toàn bộ | Một phần | CI main 45964311888 đạt; chưa đủ thiết bị thật |
 | 44 | Hệ thống | RAM/CPU/pin/nhiệt | Vướng | Cần đo thiết bị thật |
 | 45 | Hệ thống | Dependency/bảo mật | Một phần | CI thư viện 45958039759 đạt; cần audit bảo mật |
