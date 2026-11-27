@@ -83,9 +83,9 @@ class Dashboard extends StatelessWidget {
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: dark ? const [Color(0xff101b2d), Color(0xff26364a)] : const [Color(0xffe3efff), Color(0xfff6f8fc)])),
       child: SafeArea(child: LayoutBuilder(builder: (context, constraints) {
         final wide = constraints.maxWidth >= 650;
-        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: wide ? 6 : 3, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.15, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        final tiles = GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: wide ? 6 : 3, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 144, children: entries.map((e) => InkWell(borderRadius: BorderRadius.circular(24), onTap: e.$3, child: panel(context, Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(e.$2, size: 30, color: scheme.primary), const SizedBox(height: 6),
-          Text(e.$1, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+          Flexible(child: Text(e.$1, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis)),
         ])))).toList());
         return Column(children: [
           Expanded(child: ListView(padding: const EdgeInsets.all(12), children: [
