@@ -11,17 +11,24 @@ import 'safety_screen.dart';
 import 'privacy_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.infinitimoney.infiniti_caros.audio',
+    androidNotificationChannelName: 'Phát âm thanh CarOS',
+    androidNotificationOngoing: true,
+  );
   final prefs = await SharedPreferences.getInstance();
-  runApp(InfinitiApp(prefs: prefs));
+  runApp(InfinitiApp(prefs: prefs, backgroundAudio: true));
 }
 
 class InfinitiApp extends StatefulWidget {
-  const InfinitiApp({super.key, required this.prefs});
+  const InfinitiApp({super.key, required this.prefs, this.backgroundAudio = false});
+  final bool backgroundAudio;
   final SharedPreferences prefs;
   @override
   State<InfinitiApp> createState() => _InfinitiAppState();
@@ -46,7 +53,7 @@ class _InfinitiAppState extends State<InfinitiApp> with WidgetsBindingObserver {
     supportedLocales: const [Locale('vi')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     theme: ThemeData(colorSchemeSeed: const Color(0xff4789db), brightness: effectiveDark ? Brightness.dark : Brightness.light, useMaterial3: true),
-    home: Dashboard(prefs: widget.prefs, dark: effectiveDark, glass: glass, layout: layout, onLayout: (value) async {
+    home: Dashboard(prefs: widget.prefs, backgroundAudio: widget.backgroundAudio, dark: effectiveDark, glass: glass, layout: layout, onLayout: (value) async {
       final safe = LauncherPrefs.decode(value.encode());
       if (await widget.prefs.setString('launcher_layout', safe.encode()) && mounted) {
         setState(() => layout = safe);
@@ -63,7 +70,8 @@ class _InfinitiAppState extends State<InfinitiApp> with WidgetsBindingObserver {
 }
 
 class Dashboard extends StatelessWidget {
-  const Dashboard({super.key, required this.prefs, required this.dark, required this.glass, required this.onDark, required this.onGlass, required this.layout, required this.onLayout});
+  const Dashboard({super.key, required this.prefs, required this.dark, required this.glass, required this.onDark, required this.onGlass, required this.layout, required this.onLayout, this.backgroundAudio = false});
+  final bool backgroundAudio;
   final SharedPreferences prefs;
   final bool dark, glass;
   final ValueChanged<bool> onDark, onGlass;
@@ -119,7 +127,7 @@ class Dashboard extends StatelessWidget {
     final allEntries = <(String, IconData, VoidCallback)>[
       ('Bản đồ', Icons.map_outlined, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen()))),
       ('Bản đồ Apple', Icons.navigation_outlined, () => open(context, 'https://maps.apple.com/')),
-      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs)))),
+      ('Giải trí', Icons.music_note, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs, backgroundAudio: backgroundAudio)))),
       ('Spotify', Icons.headphones, () => open(context, 'https://open.spotify.com/')),
       ('Podcast', Icons.podcasts, () => open(context, 'https://podcasts.apple.com/')),
       ('Trợ lý', Icons.mic_none, () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen()))),
@@ -163,7 +171,7 @@ class Dashboard extends StatelessWidget {
             dark: dark, glass: glass, onAction: (action) {
               switch (action) {
                 case 'map': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NavigationScreen())); break;
-                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs))); break;
+                case 'music': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EntertainmentScreen(prefs: prefs, backgroundAudio: backgroundAudio))); break;
                 case 'theme': onDark(!dark); break;
                 case 'voice': Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CommunicationScreen())); break;
                 case 'settings': settings(context); break;

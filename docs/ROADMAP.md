@@ -29,8 +29,8 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 13 | Giải trí | Spotify API/OAuth | Vướng | docs/ENTERTAINMENT.md: cần Client ID/redirect và tài khoản hợp lệ |
 | 14 | Giải trí | Apple Music/MusicKit | Vướng | docs/ENTERTAINMENT.md: cần quyền MusicKit và thiết bị ký |
 | 15 | Giải trí | Radio/podcast | Một phần | docs/ENTERTAINMENT.md; test/entertainment_test.dart |
-| 16 | Giải trí | Nhạc nền | Chưa xác minh | docs/ENTERTAINMENT.md: chưa hỗ trợ |
-| 17 | Giải trí | Điều khiển màn hình khóa | Chưa xác minh | Cần media session và test thật |
+| 16 | Giải trí | Nhạc nền | Một phần | Bản điện thoại: just_audio_background, service Android / iOS audio mode; rời màn hình Giải trí dừng; cần thiết bị |
+| 17 | Giải trí | Điều khiển màn hình khóa | Một phần | Bản điện thoại: MediaItem và remote controls từ just_audio_background; cần QA màn hình khóa |
 | 18 | Giải trí | Khôi phục phiên phát | Một phần | playback_session.dart: lưu/khôi phục thủ công, không tự phát; cần CI và kiểm thử audio thiết bị |
 | 19 | Trợ lý | Nhận diện giọng Việt | Một phần | docs/COMMUNICATION.md; cần micro/locale thật |
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
