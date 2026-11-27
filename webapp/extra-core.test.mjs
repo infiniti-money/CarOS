@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {httpsUrl,mediaExtension,maxVideoBytes} from './extra-core.mjs';
+test('reject insecure media and terrain URLs',()=>{for(const u of ['http://example.org','javascript:alert(1)','https://x:y@example.org'])assert.throws(()=>httpsUrl(u));assert.equal(httpsUrl('https://example.org/live'),'https://example.org/live');});
+test('recording container matches actual MIME',()=>{assert.equal(mediaExtension('video/mp4;codecs=avc1'),'mp4');assert.equal(mediaExtension('video/webm;codecs=vp8'),'webm');assert.equal(mediaExtension('audio/mp3'),null);assert.equal(maxVideoBytes,33554432);});

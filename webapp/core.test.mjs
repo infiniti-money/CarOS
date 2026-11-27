@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {validFix,speedText,segment,mapsUrl} from './core.mjs';
+const p=(t,lat=20,speed=10,accuracy=5)=>({timestamp:t,coords:{latitude:lat,longitude:106,speed,accuracy}});
+test('invalid stale and missing speed never fake data',()=>{assert.equal(speedText(null,10000),'— km/h');assert.equal(speedText(p(0),20000),'— km/h');assert.equal(speedText(p(10000,20,null),10000),'— km/h');assert.equal(speedText(p(10000),10000),'36 km/h');assert.equal(validFix(p(10000,99),10000),false);assert.equal(validFix(p(10000,20,5,100),10000),false);});
+test('GPS jitter, gaps and unrealistic jumps ignored',()=>{assert.equal(segment(p(1000),p(2000,20.000001)),0);assert.equal(segment(p(1000),p(30000,20.001)),0);assert.equal(segment(p(1000),p(2000,21)),0);assert.ok(segment(p(1000),p(10000,20.001))>100);});
+test('map link fixed provider and encoded user input',()=>{const u=new URL(mapsUrl('Hà Nội & x=1'));assert.equal(u.origin,'https://www.google.com');assert.equal(u.searchParams.get('query'),'Hà Nội & x=1');});
