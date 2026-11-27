@@ -45,6 +45,27 @@ Future<File> saveDashClip(Directory directory, String name,
   }
 }
 
+// Preserve a stopped recording in the private library for explicit review.
+// Never overwrite an existing staging file or delete the only source on failure.
+Future<File> preserveInterruptedRecording(Directory directory, String name, File source) async {
+  if (!isDashClip(name)) throw ArgumentError.value(name, 'name');
+  final pending = File('${directory.path}/$name.part');
+  if (await FileSystemEntity.type(pending.path, followLinks: false) != FileSystemEntityType.notFound) {
+    throw StateError('Recovery file already exists');
+  }
+  final size = await source.length();
+  if (size <= 0) throw StateError('Empty recording');
+  // A successful same-volume rename preserves the original without a second copy.
+  try {
+    return await source.rename(pending.path);
+  } on FileSystemException {
+    // A cross-volume move can fail. Keep the source until the copy is verified.
+    await source.copy(pending.path);
+    if (await pending.length() != size) throw StateError('Incomplete recovery copy');
+    return pending;
+  }
+}
+
 class DashCamScreen extends StatefulWidget {
   const DashCamScreen({super.key});
   @override
@@ -166,13 +187,20 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       final dir = await directory();
       final name = 'trip_${DateTime.now().microsecondsSinceEpoch}.mp4';
       final source = File(result.path);
+      var published = false;
+      var recovered = false;
       try {
         final records = await readLibrary(dir);
         final removeNames = planClipEviction(records, await source.length(), loop: loop);
         if (removeNames == null) throw StateError('Không đủ dung lượng video');
-        // Only delete after the new clip has been copied successfully.
-        final file = await saveDashClip(dir, name, result.saveTo);
-        if (protectCurrent) await File('${file.path}.lock').writeAsString('protected', flush: true);
+        // Persist the protection marker before publishing a protected clip.
+        // A failed publish may leave an orphan marker, but cannot expose an
+        // event clip to automatic eviction.
+        if (protectCurrent) {
+          await File('${dir.path}/$name.lock').writeAsString('protected', flush: true);
+        }
+        await saveDashClip(dir, name, result.saveTo);
+        published = true;
         for (final old in removeNames) {
           final target = File('${dir.path}/$old');
           if (await File('${target.path}.lock').exists()) {
@@ -181,12 +209,27 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
           await target.delete();
         }
         saved = true;
+      } catch (_) {
+        if (!published) {
+          try {
+            await preserveInterruptedRecording(dir, name, source);
+            recovered = true;
+          } catch (_) {
+            // Do not delete the source if even recovery storage failed.
+          }
+        }
+        if (mounted) setState(() => status = published
+          ? 'Đã lưu video; dừng ghi vòng lặp vì lỗi dọn kho.'
+          : recovered
+            ? 'Chưa đưa video vào thư viện; đã giữ bản ghi tạm để xem xét.'
+            : 'Không lưu được video; không chủ động xóa tệp gốc. Có thể mất khi hệ điều hành dọn cache.');
       } finally {
-        try { await source.delete(); } catch (_) {}
+        if (published || recovered) {
+          try { if (await source.exists()) await source.delete(); } catch (_) {}
+        }
         await refresh();
       }
-      if (mounted) setState(() => status = 'Đã lưu video hành trình');
-      await refresh();
+      if (saved && mounted) setState(() => status = 'Đã lưu video hành trình');
     } catch (_) {
       if (mounted) setState(() => status = 'Dừng quay: không đủ dung lượng hoặc lỗi lưu video');
     } finally {
@@ -241,12 +284,13 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
       if (!mounted || ok != true || !foreground || releaseRequested) return;
       final dir = await directory();
       for (final file in await interruptedClips(dir)) {
-        if (await FileSystemEntity.type(file.path, followLinks: false) == FileSystemEntityType.file) {
+        if (await FileSystemEntity.type(file.path, followLinks: false) == FileSystemEntityType.file &&
+            !await File('${file.path.substring(0, file.path.length - 5)}.lock').exists()) {
           await file.delete();
         }
       }
       await refresh();
-      if (mounted) setState(() => status = 'Đã dọn các bản sao chưa hoàn tất');
+      if (mounted) setState(() => status = 'Đã dọn bản sao tạm không khóa; giữ lại bản ghi được bảo vệ.');
     } catch (_) {
       if (mounted) setState(() => status = 'Không dọn được toàn bộ tệp tạm');
     } finally {
@@ -318,7 +362,7 @@ class _DashCamScreenState extends State<DashCamScreen> with WidgetsBindingObserv
         Text('Kho video: ${(libraryBytes / 1048576).toStringAsFixed(1)} / 1024 MiB • ${clips.length}/20 đoạn'),
         const Text('Mỗi đoạn tối đa 5 phút. Dừng khi hết dung lượng; giới hạn áp dụng cho video đã lưu, không gồm tệp đang ghi. Chỉ xem hoặc xóa khi đã đỗ xe.'),
         if (interrupted.isNotEmpty)
-          ListTile(leading: const Icon(Icons.warning_amber), title: Text('Có ${interrupted.length} tệp ghi chưa hoàn tất'), subtitle: const Text('Không phát như video hợp lệ; chỉ dọn khi bạn xác nhận.'), trailing: TextButton(onPressed: busy || recording || releasing || camera != null ? null : discardInterrupted, child: const Text('Dọn tệp'))),
+          ListTile(leading: const Icon(Icons.warning_amber), title: Text('Có ${interrupted.length} tệp ghi chưa hoàn tất'), subtitle: const Text('Không phát như video hợp lệ; chỉ dọn tệp không khóa khi xác nhận.'), trailing: TextButton(onPressed: busy || recording || releasing || camera != null ? null : discardInterrupted, child: const Text('Dọn tệp'))),
         for (final clip in clips)
           ListTile(title: Text(clip.uri.pathSegments.last), leading: const Icon(Icons.movie),
             onTap: recording || busy || releasing ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ClipScreen(file: clip))),
