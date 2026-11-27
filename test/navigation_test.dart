@@ -1,7 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:infiniti_caros/navigation.dart';
 
 void main() {
+  test('Vietnamese turns and roundabout exit', () {
+    expect(vietnameseTurn('turn','left','Lê Lợi',null), 'Rẽ trái vào Lê Lợi');
+    expect(vietnameseTurn('roundabout','','',2), 'Ra khỏi vòng xuyến tại lối thứ 2');
+  });
+  test('offset measures nearest segment, not only vertices', () {
+    expect(routeOffset(const LatLng(21,105.85), const [LatLng(21,105.8),LatLng(21,105.9)]), lessThan(1));
+  });
   test('place parsing rejects invalid coordinates', () {
     final rows = parsePlaces([
       {'lat':'21.0','lon':'105.8','display_name':'Hà Nội'},

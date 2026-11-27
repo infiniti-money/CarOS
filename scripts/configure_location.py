@@ -19,6 +19,9 @@ if sys.argv[1] == 'android':
     if not any(e.get('{'+ns+'}name') == 'android.speech.RecognitionService' for e in queries.findall('intent/action')):
         intent = ET.SubElement(queries, 'intent')
         ET.SubElement(intent, 'action', {'{'+ns+'}name': 'android.speech.RecognitionService'})
+    if not any(e.get('{'+ns+'}name') == 'android.intent.action.TTS_SERVICE' for e in queries.findall('intent/action')):
+        intent = ET.SubElement(queries, 'intent')
+        ET.SubElement(intent, 'action', {'{'+ns+'}name': 'android.intent.action.TTS_SERVICE'})
     gradle = Path('android/app/build.gradle.kts')
     if gradle.exists():
         gradle.write_text(gradle.read_text().replace('minSdk = flutter.minSdkVersion', 'minSdk = 24'))
