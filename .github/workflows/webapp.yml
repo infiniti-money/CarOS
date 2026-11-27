@@ -21,7 +21,8 @@ jobs:
           mkdir -p webapp/vendor
           npm pack maplibre-gl@6.19.0 --ignore-scripts --pack-destination /tmp
           tar -xzf /tmp/maplibre-gl-6.19.0.tgz -C /tmp
-          cp /tmp/package/dist/maplibre-gl.mjs /tmp/package/dist/maplibre-gl.css webapp/vendor/
+          cp -a /tmp/package/dist/. webapp/vendor/
+          find webapp/vendor -type f -name '*.map' -delete
           cp /tmp/package/LICENSE* webapp/vendor/
           test -s webapp/vendor/maplibre-gl.mjs
       - run: node --check webapp/shell.mjs && node --check webapp/app.js && node --check webapp/sw.js && node --check webapp/map.mjs && node --check webapp/terrain.mjs && node --check webapp/media.mjs && node --test webapp/*.test.mjs
@@ -36,6 +37,7 @@ jobs:
           server=$!
           trap 'kill "$server" || true' EXIT
           for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && break; sleep 1; done
+          python3 -c "import sys; sys.path.insert(0,'scripts'); from generate_web_icons import png; from pathlib import Path; Path('/tmp/caros-test-dem.png').write_bytes(png(256))"
           NODE_PATH=/tmp/caros-e2e/node_modules node --test scripts/webapp-e2e.cjs
       - run: rm webapp/*.test.mjs
       - uses: actions/upload-pages-artifact@v3
