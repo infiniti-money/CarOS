@@ -160,7 +160,9 @@ class _NavigationScreenState extends State<NavigationScreen> with WidgetsBinding
         final point = validPoint(p.latitude, p.longitude);
         final age = DateTime.now().difference(p.timestamp).inSeconds;
         if (!mounted || point == null || p.accuracy > 50 || p.accuracy < 0 ||
-            !p.accuracy.isFinite || age > 10 || age < -2) return;
+            !p.accuracy.isFinite || age > 10 || age < -2) {
+          return;
+        }
         setState(() { position = point; fixTime = p.timestamp; status = 'GPS đang hoạt động'; });
         if (ready && follow) map.move(point, 16);
       }, onError: (Object _) {
