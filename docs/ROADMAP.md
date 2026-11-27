@@ -21,10 +21,10 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 5 | Bản đồ | Lưu vị trí đỗ | Một phần | docs/GPS.md; test/trip_test.dart; cần thiết bị |
 | 6 | Bản đồ | Bản đồ ngoại tuyến | Chưa xác minh | Cần nguồn tile có giấy phép và kiểm thử mất mạng |
 | 7 | Launcher | Ngang/dọc | Một phần | docs/DESIGN.md; test/dashboard_test.dart; cần thiết bị |
-| 8 | Launcher | Widget tùy chỉnh | Chưa xác minh | Cần lưu bố cục và test |
+| 8 | Launcher | Widget tùy chỉnh | Một phần | launcher_prefs.dart: lưu thứ tự/ẩn launcher; widget tự do chưa có; cần kiểm thử UI |
 | 9 | Launcher | Chia đôi màn hình | Một phần | docs/DESIGN.md: hai cột, chưa xác minh split-screen OS |
-| 10 | Launcher | Hình nền và biểu tượng | Chưa xác minh | Cần tùy chỉnh và lưu |
-| 11 | Launcher | Sáng/tối tự động | Một phần | lib/main.dart: toggle thủ công |
+| 10 | Launcher | Hình nền và biểu tượng | Một phần | launcher_editor.dart: ba nền gradient, ẩn/sắp xếp biểu tượng; chưa chọn ảnh cá nhân |
+| 11 | Launcher | Sáng/tối tự động | Một phần | lib/main.dart: theo platformBrightness khi bật; chuyển thủ công tắt tự động; cần QA thiết bị |
 | 12 | Launcher | Liquid Glass native | Một phần | native/ios/GlassBar.swift; docs/DESIGN.md; cần QA thật |
 | 13 | Giải trí | Spotify API/OAuth | Vướng | docs/ENTERTAINMENT.md: cần Client ID/redirect và tài khoản hợp lệ |
 | 14 | Giải trí | Apple Music/MusicKit | Vướng | docs/ENTERTAINMENT.md: cần quyền MusicKit và thiết bị ký |

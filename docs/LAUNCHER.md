@@ -1,0 +1,2 @@
+# Launcher preferences
+Local JSON settings validated by launcher_prefs.dart. Order and hidden launcher shortcuts persist; Settings is always visible. Three built-in gradient backgrounds and OS brightness synchronization, no image permissions. Existing native glass bar uses the same filtered order and Flutter fallback. Manual theme button disables automatic mode. This is not free-form widget placement or custom icon artwork. Test on iOS/Android, phone and tablet; no claim of full 48-item acceptance.
