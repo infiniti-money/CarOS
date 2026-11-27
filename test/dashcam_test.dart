@@ -14,6 +14,25 @@ void main() {
     expect(parts.map((file) => file.uri.pathSegments.last), ['trip_1.mp4.part']);
     expect(await dir.list().length, 4);
   });
+  test('failed admission preserves the original recording as private staging', () async {
+    final dir = await Directory.systemTemp.createTemp('caros_recovery_');
+    addTearDown(() => dir.delete(recursive: true));
+    final source = await File('${dir.path}/camera.tmp').writeAsBytes([1, 2, 3]);
+    final pending = await preserveInterruptedRecording(dir, 'trip_5.mp4', source);
+    expect(await pending.readAsBytes(), [1, 2, 3]);
+    expect((await interruptedClips(dir)).map((f) => f.uri.pathSegments.last),
+      ['trip_5.mp4.part']);
+    expect(await File('${dir.path}/trip_5.mp4').exists(), isFalse);
+  });
+  test('recovery collision does not overwrite pending or lose source', () async {
+    final dir = await Directory.systemTemp.createTemp('caros_recovery_');
+    addTearDown(() => dir.delete(recursive: true));
+    final source = await File('${dir.path}/camera.tmp').writeAsBytes([1, 2]);
+    final pending = await File('${dir.path}/trip_6.mp4.part').writeAsBytes([9]);
+    await expectLater(preserveInterruptedRecording(dir, 'trip_6.mp4', source), throwsStateError);
+    expect(await source.readAsBytes(), [1, 2]);
+    expect(await pending.readAsBytes(), [9]);
+  });
   test('loop only evicts oldest unlocked videos', () {
     const clips = [ClipRecord('protected', 60, true, 1),
       ClipRecord('new', 20, false, 3), ClipRecord('old', 20, false, 2)];

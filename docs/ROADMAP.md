@@ -36,8 +36,8 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 20 | Trợ lý | Mở ứng dụng | Một phần | docs/COMMUNICATION.md: lệnh giới hạn và xác nhận |
 | 21 | Trợ lý | Gọi điện/đọc thông báo | Một phần | docs/COMMUNICATION.md: tel sau xác nhận; chưa đọc thông báo |
 | 22 | Trợ lý | Lịch/nhắc việc | Một phần | docs/COMMUNICATION.md: chỉ đọc lịch |
-| 23 | Trợ lý | Siri Shortcuts | Chưa xác minh | Cần App Intents và thiết bị |
-| 24 | Trợ lý | Rảnh tay | Chưa xác minh | docs/COMMUNICATION.md: push-to-talk, không nghe nền |
+| 23 | Trợ lý | Siri Shortcuts | Một phần | Native AppIntents iOS 16+, 3 shortcut mở màn hình; cần CI và Siri thiết bị |
+| 24 | Trợ lý | Rảnh tay | Một phần | Siri mở màn hình qua lệnh hệ điều hành; trợ lý trong app vẫn push-to-talk, chưa xác minh hội thoại rảnh tay |
 | 25 | Xe | CarPlay thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: entitlement, xe thật |
 | 26 | Xe | Android Auto thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: host và phê duyệt |
 | 27 | Xe | Bluetooth tự kết nối | Một phần | BLE FFE0/FFE1, ghi nhớ opt-in, retry giới hạn khi màn hình mở; cần adapter thật |
@@ -60,10 +60,13 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 44 | Hệ thống | RAM/CPU/pin/nhiệt | Vướng | Cần đo thiết bị thật |
 | 45 | Hệ thống | Dependency/bảo mật | Một phần | CI thư viện 45958039759 đạt; cần audit bảo mật |
 | 46 | Hệ thống | APK/IPA ký hợp lệ | Vướng | Cần chứng chỉ và profile được cấp quyền |
-| 47 | Hệ thống | Cập nhật/rollback | Chưa xác minh | Cần quy trình và kiểm thử |
+| 47 | Hệ thống | Cập nhật/rollback | Một phần | scripts/apk_manifest.py: checksum, kế hoạch rollback debug, test; cần ký và thử migration/rollback thiết bị |
 | 48 | Hệ thống | Workflow kiểm tra 15 phút | Một phần | Monitor mở rộng app/dependency/host; PR #27 run 45984492091 đạt; chưa thấy schedule run |
 
 Monitor cấu hình cron `7,22,37,52 * * * *` UTC; chạy lịch có thể trễ. Không coi monitor xanh là CI build xanh. Không phát hành chính thức khi chưa được cấp quyền.
 
 ## Tích hợp tiếp theo
 Main `d22697e592a3a4be06d528b2fa7995bc6eeaa109` chứa PR #24 và toàn bộ ancestry #21–23; ba PR cũ đã đóng. PR #26 tích hợp thêm #25 (quyền riêng tư) và #27 (CI Monitor) với lịch sử commit nguyên vẹn, cần CI mới trên main. Chưa nghiệm thu đủ 48 tiêu chí; không tính PR xanh thay cho kiểm thử thiết bị thực tế.
+
+## Mốc sau PR #29
+Main 2a60a7b5eab67b7ffcfb442cf95cfac8bc2e72fa, PR #29 đã tích hợp; CI main 45996347044 đang chạy tại lúc cập nhật. PR #26/#28 đã tích hợp, #28 rerun thành công. Không coi CI PR là nghiệm thu thiết bị.

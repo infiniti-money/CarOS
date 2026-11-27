@@ -1,4 +1,8 @@
 import 'dart:ui';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'shortcut_route.dart';
 import 'trip.dart';
 import 'entertainment.dart';
 import 'communication.dart';
@@ -40,15 +44,79 @@ class _InfinitiAppState extends State<InfinitiApp> with WidgetsBindingObserver {
   late bool glass = widget.prefs.getBool('glass') ?? true;
   late LauncherPrefs layout = LauncherPrefs.decode(widget.prefs.getString('launcher_layout'));
   bool get effectiveDark => layout.systemTheme ? WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark : dark;
+  final navigator = GlobalKey<NavigatorState>();
+  static const shortcutChannel = MethodChannel('infiniti/shortcuts');
+  bool checkingShortcut = false;
+  bool shortcutPending = false;
+  bool get shortcutsEnabled => widget.backgroundAudio && !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
   @override
-  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (shortcutsEnabled) {
+      shortcutChannel.setMethodCallHandler((call) async {
+        if (call.method == 'routeAvailable') await checkShortcut();
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(checkShortcut()));
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && shortcutsEnabled) {
+      unawaited(checkShortcut());
+    }
+  }
+
+  Future<void> checkShortcut() async {
+    if (!mounted || WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+    if (checkingShortcut) {
+      shortcutPending = true;
+      return;
+    }
+    final nav = navigator.currentState;
+    if (nav == null) return;
+    checkingShortcut = true;
+    try {
+      final raw = await shortcutChannel.invokeMethod<Object?>('takeRoute');
+      final route = parseShortcutRoute(raw);
+      if (!mounted || route == null || WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed || !nav.mounted) return;
+      if (nav.canPop()) {
+        ScaffoldMessenger.maybeOf(nav.context)?.showSnackBar(const SnackBar(content: Text('Hãy trở về màn hình chính trước khi mở phím tắt CarOS.')));
+        return;
+      }
+      final page = switch (route) {
+        ShortcutRoute.map => const NavigationScreen(),
+        ShortcutRoute.audio => EntertainmentScreen(prefs: widget.prefs, backgroundAudio: widget.backgroundAudio),
+        ShortcutRoute.assistant => const CommunicationScreen(),
+      };
+      unawaited(nav.push<void>(MaterialPageRoute(builder: (_) => page)));
+    } on MissingPluginException {
+      // Unsupported platform version.
+    } on PlatformException {
+      // Do not execute an alternative command.
+    } finally {
+      checkingShortcut = false;
+      if (shortcutPending) {
+        shortcutPending = false;
+        unawaited(checkShortcut());
+      }
+    }
+  }
+
   @override
   void didChangePlatformBrightness() { if (mounted && layout.systemTheme) setState(() {}); }
   @override
-  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  void dispose() {
+    if (shortcutsEnabled) shortcutChannel.setMethodCallHandler(null);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Infiniti CarOS',
+    navigatorKey: navigator,
     debugShowCheckedModeBanner: false,
     locale: const Locale('vi'),
     supportedLocales: const [Locale('vi')],

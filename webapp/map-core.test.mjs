@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {project,visibleTiles,zoomCenter,relative,worldSize} from './map-core.mjs';
+test('Mercator equator and finite polar coordinates',()=>{assert.deepEqual(project(0,0,2),{x:512,y:512});assert.ok(Number.isFinite(project(90,180,18).y));});
+test('visible tiles wrap antimeridian and bound y',()=>{const tiles=visibleTiles({x:0,y:0},512,512,2);assert.ok(tiles.some(t=>t.x===3));assert.ok(tiles.every(t=>t.x>=0&&t.x<4&&t.y>=0&&t.y<4));assert.ok(tiles.length<=9);});
+test('zoom preserves center and marker wraps',()=>{assert.deepEqual(zoomCenter({x:512,y:512},2,3),{x:1024,y:1024});assert.equal(relative({x:worldSize(2)-10,y:50},{x:10,y:50},100,100,2).x,30);});
