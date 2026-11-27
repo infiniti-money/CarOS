@@ -31,3 +31,6 @@ CI chạy Chromium Playwright 1.56.1 với GPS mô phỏng của browser, camera
 
 ## Giao diện ô tô WebApp
 Launcher biểu tượng tròn tự vẽ, SmartBar cố định có giờ thiết bị và tốc độ GPS thật (— nếu thiếu), màn hình bản đồ/đỗ xe/giải trí/camera/cài đặt riêng và Tổng quan giữ widget cũ. Bàn phím gọi điện xác nhận mở tel:; Contact Picker chỉ nếu trình duyệt hỗ trợ, không đọc lịch sử cuộc gọi hay tự nhập danh bạ. Không sao chép ảnh mẫu, dữ liệu liên hệ, logo độc quyền, trạng thái tài khoản hoặc thời tiết giả. E2E bổ sung chuyển màn hình và bàn phím; runner Ubuntu 24.04 cho Playwright 1.56.1.
+
+## Giao diện v2
+Bốn tab điện thoại: yêu thích và danh bạ CarOS lưu số do người dùng tự chọn/nhập, gần đây chỉ ghi yêu cầu mở trình gọi (không khẳng định đã gọi), bàn phím. Không có truy cập lịch sử cuộc gọi hệ thống. Xóa dữ liệu xóa cả mục này. Thời gian đỗ tính từ timestamp đã lưu, khoảng cách đường chim bay chỉ khi GPS còn hợp lệ; ghi chú cục bộ. Tự động sáng/tối theo hệ thống, 3 hình nền CSS, tùy chọn tốc độ SmartBar, chế độ tập trung bản đồ. Không dùng ảnh/danh bạ mẫu làm dữ liệu hoặc tài sản repo; không có backend tài khoản. Cần kiểm thử E2E và thiết bị.
