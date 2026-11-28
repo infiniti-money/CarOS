@@ -45,3 +45,6 @@ HTML, stylesheet, entrypoint và các module nội bộ sử dụng cùng phiên
 
 ## Hướng màn hình mobile (landscape-first)
 PWA yêu cầu `orientation: landscape` trong manifest. Trình duyệt hỗ trợ Screen Orientation API có thể khóa ngang sau thao tác người dùng; Safari và một số hệ điều hành có thể từ chối. Khi dọc, banner hướng dẫn xoay máy, giữ chức năng truy cập được và không xoay giả nội dung. Khi ngang, launcher luôn có bốn cột kể cả viewport 568px. Cache shell v10 cập nhật đồng bộ các URL tài nguyên. Kiểm thử Chromium kiểm tra manifest, fallback khi API bị từ chối và hai kích thước ngang; chưa chứng minh khóa hướng trên iPhone/Android thật. Native Flutter sẽ cần thay đổi riêng sau PR OBD-II #31 để không sửa đồng thời lib/main.dart.
+
+## Nghiên cứu CarPlay iOS 3.0.2 — đợt 1
+Tham khảo chức năng, không nhập binary, NIB, PNG hay SDK đóng gói. Cài đặt Home hỗ trợ ba kích thước icon; SmartBar chọn tốc độ GPS, pin thiết bị (nếu trình duyệt hỗ trợ và người dùng chọn) hoặc thu gọn. Pin là pin điện thoại, không phải pin xe; không hỗ trợ thì hiển thị —. Không gọi dịch vụ mạng. Tùy chọn lưu cục bộ, xuất/xóa theo cơ chế hiện có. Cache shell v11. Xem [phân tích nguồn](CARPLAY_IOS_302_RESEARCH.md). Chưa nghiệm thu thiết bị thật.

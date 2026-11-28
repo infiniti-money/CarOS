@@ -1,4 +1,4 @@
-import {httpsUrl,mediaExtension,maxVideoBytes} from './extra-core.mjs?v=10';
+import {httpsUrl,mediaExtension,maxVideoBytes} from './extra-core.mjs?v=11';
 export function setupMedia(){const $=id=>document.getElementById(id),video=$('camera-preview'),audio=$('radio-audio');let stream=null,rec=null,timer=null,link=null,epoch=0,starting=false,discard=false;
  function release(){clearTimeout(timer);stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.hidden=true;}
  function clearClip(){if(link)URL.revokeObjectURL(link);link=null;$('camera-download').hidden=true;$('camera-download').removeAttribute('href');$('camera-delete').disabled=true;}
