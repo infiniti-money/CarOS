@@ -1,19 +1,21 @@
 (async()=>{
-const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=10');
-const {createMap}=await import('./map.mjs?v=10');
-const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=10');
-const {setupWidgets}=await import('./widgets.mjs?v=10');
-const {setupTerrain}=await import('./terrain.mjs?v=10');
-const {setupMedia}=await import('./media.mjs?v=10');
-const {setupShell}=await import('./shell.mjs?v=10');
-const {elapsedText}=await import('./phone-core.mjs?v=10');
-const {distanceMeters}=await import('./core.mjs?v=10');
+const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=11');
+const {createMap}=await import('./map.mjs?v=11');
+const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=11');
+const {setupWidgets}=await import('./widgets.mjs?v=11');
+const {setupTerrain}=await import('./terrain.mjs?v=11');
+const {setupMedia}=await import('./media.mjs?v=11');
+const {setupShell}=await import('./shell.mjs?v=11');
+const {elapsedText}=await import('./phone-core.mjs?v=11');
+const {distanceMeters}=await import('./core.mjs?v=11');
 const $=id=>document.getElementById(id),key='infiniti-caros-web-v1';
 let state={};try{const v=JSON.parse(localStorage.getItem(key)||'{}');if(v&&typeof v==='object'&&!Array.isArray(v))state=v;}catch{}
 function save(){try{localStorage.setItem(key,JSON.stringify(state));return true;}catch{return false;}}
 let watch=null,last=null,meters=0,epoch=0,plan=null,request=null;
 const fix=()=>validFix(last)?{lat:last.coords.latitude,lon:last.coords.longitude}:null;
-const systemTheme=matchMedia('(prefers-color-scheme: light)');function theme(){const mode=['auto','dark','light'].includes(state.theme)?state.theme:'auto';const wallpaper=['dawn','ocean','graphite'].includes(state.wallpaper)?state.wallpaper:'dawn';document.documentElement.dataset.theme=mode==='auto'?(systemTheme.matches?'light':'dark'):mode;document.documentElement.dataset.wallpaper=wallpaper;document.documentElement.dataset.bar=state.bar==='compact'?'compact':'speed';document.documentElement.dataset.glass=state.glass===false?'off':'on';$('glass').setAttribute('aria-pressed',String(state.glass!==false));$('appearance-mode').value=mode;$('wallpaper').value=wallpaper;$('bar-mode').value=document.documentElement.dataset.bar;}systemTheme.addEventListener('change',theme);for(const [id,key] of [['appearance-mode','theme'],['wallpaper','wallpaper'],['bar-mode','bar']])$(id).onchange=()=>{state[key]=$(id).value;theme();save();};
+let battery=null,batteryPending=false;
+function requestBattery(){if(battery||batteryPending||typeof navigator.getBattery!=='function')return;batteryPending=true;Promise.resolve().then(()=>navigator.getBattery()).then(value=>{battery=value;}).catch(()=>{}).finally(()=>{batteryPending=false;});}
+const systemTheme=matchMedia('(prefers-color-scheme: light)');function theme(){const mode=['auto','dark','light'].includes(state.theme)?state.theme:'auto';const wallpaper=['dawn','ocean','graphite'].includes(state.wallpaper)?state.wallpaper:'dawn';document.documentElement.dataset.theme=mode==='auto'?(systemTheme.matches?'light':'dark'):mode;document.documentElement.dataset.wallpaper=wallpaper;document.documentElement.dataset.bar=['speed','battery','compact'].includes(state.bar)?state.bar:'speed';document.documentElement.dataset.iconSize=['small','normal','large'].includes(state.iconSize)?state.iconSize:'normal';$('icon-size').value=document.documentElement.dataset.iconSize;if(document.documentElement.dataset.bar==='battery')requestBattery();document.documentElement.dataset.glass=state.glass===false?'off':'on';$('glass').setAttribute('aria-pressed',String(state.glass!==false));$('appearance-mode').value=mode;$('wallpaper').value=wallpaper;$('bar-mode').value=document.documentElement.dataset.bar;}systemTheme.addEventListener('change',theme);for(const [id,key] of [['appearance-mode','theme'],['wallpaper','wallpaper'],['bar-mode','bar'],['icon-size','iconSize']])$(id).onchange=()=>{state[key]=$(id).value;theme();save();};
 $('glass').onclick=()=>{state.glass=state.glass===false;theme();save();};
 theme();$('theme').onclick=()=>{state.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';theme();save();};
 function parking(){const p=state.parking;const ok=p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Number.isFinite(p.time);$('parking').textContent=ok?`Chỗ đỗ: ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${new Date(p.time).toLocaleString('vi-VN')}`:'Chưa lưu chỗ đỗ';$('park-map').hidden=!ok;if(ok)$('park-map').href=mapsUrl(p.lat+','+p.lon);else $('park-map').removeAttribute('href');$('park-note').value=ok&&typeof p.note==='string'?p.note.slice(0,120):'';$('park-note-save').disabled=!ok;$('park-remove').disabled=!ok;parkingMetrics();}
@@ -21,7 +23,7 @@ function parkingMetrics(){const p=state.parking,valid=p&&Number.isFinite(p.lat)&
 const map=createMap({getRoute:()=>plan?.points??[],getGps:()=>validFix(last)?{lat:last.coords.latitude,lon:last.coords.longitude}:null,getParking:()=>{const p=state.parking;return p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180?p:null;}});
 const terrain=setupTerrain(fix),media=setupMedia();
 const widgets=setupWidgets({read:()=>state.widgets,write:w=>{state.widgets=w;save();},onChange:()=>map.refresh()});
-const shell=setupShell({readSpeed:()=>speedText(last),readPhone:()=>state.phone,writePhone:p=>{state.phone=p;return save();},readLauncher:()=>state.launcher,writeLauncher:w=>{state.launcher=w;save();},onChange:()=>map.refresh()});
+const shell=setupShell({readSpeed:()=>speedText(last),readWidget:()=>{const mode=document.documentElement.dataset.bar;if(mode==='battery')return {value:Number.isFinite(battery?.level)&&battery.level>=0&&battery.level<=1?Math.round(battery.level*100)+'%':'—',unit:'Pin thiết bị'};return {value:speedText(last).replace(' km/h',''),unit:'km/h'};},readPhone:()=>state.phone,writePhone:p=>{state.phone=p;return save();},readLauncher:()=>state.launcher,writeLauncher:w=>{state.launcher=w;save();},onChange:()=>map.refresh()});
 function render(){const good=validFix(last);$('speed').textContent=speedText(last);$('park').disabled=!good||watch===null;if(watch!==null&&!good)$('gps').textContent='Đang chờ GPS đủ chính xác';map.refresh();shell.refresh();parkingMetrics();const p=remaining(fix(),plan);$('route-progress').textContent=p?'Còn lại khoảng '+(p.meters/1000).toFixed(1)+' km · '+Math.ceil(p.seconds/60)+' phút':'Còn lại: — (thiếu GPS hoặc ngoài tuyến)';}
 function stop(message='GPS đã dừng'){epoch++;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;last=null;$('start').disabled=false;$('stop').disabled=true;$('gps').textContent=message;render();}
 $('start').onclick=()=>{if(!isSecureContext||!navigator.geolocation){$('gps').textContent='Cần HTTPS và trình duyệt hỗ trợ GPS';return;}if(watch!==null)return;const token=++epoch;meters=0;last=null;$('distance').textContent='Quãng đường phiên: 0 km (ước tính)';$('gps').textContent='Đang xin quyền vị trí';$('start').disabled=true;$('stop').disabled=false;try{watch=navigator.geolocation.watchPosition(p=>{if(token!==epoch)return;if(!validFix(p)){last=null;render();return;}meters+=segment(last,p);last=p;$('gps').textContent=`GPS thật · sai số ${Math.ceil(p.coords.accuracy)} m`;$('distance').textContent=`Quãng đường phiên: ${(meters/1000).toFixed(2)} km (ước tính)`;render();},e=>{if(token===epoch)stop(e.code===1?'Chưa cấp quyền GPS':'Không lấy được GPS');},{enableHighAccuracy:true,maximumAge:0,timeout:12000});}catch{stop('Không bật được GPS');}};

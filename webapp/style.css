@@ -46,3 +46,9 @@ body[data-screen=home] .home-heading{position:absolute;top:4px;right:8%;font-siz
 #landscape-hint{display:none}
 @media (orientation:portrait) and (max-width:767px){#landscape-hint{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px auto 0;width:calc(100% - 24px);padding:8px 12px;background:var(--ref-panel);border:1px solid var(--ref-border);border-radius:16px;font-size:13px}#landscape-hint>span:first-child{flex:1;min-width:140px}#landscape-hint button{min-height:44px;border-radius:999px;padding:6px 12px}#landscape-status:empty{display:none}#landscape-status{flex-basis:100%}}
 @media (orientation:landscape) and (max-width:649px){#launcher .launcher-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#launcher .launch-app .app-icon{width:clamp(36px,12vh,60px)}#launcher .launch-app{font-size:clamp(11px,3vh,16px);gap:4px}}
+
+/* Size preferences use bounded dimensions, preserving the two-page grid and hit targets. */
+:root[data-icon-size=small] #launcher .launch-app .app-icon{width:clamp(36px,calc(var(--ref-unit)*9.5),146px)}
+:root[data-icon-size=large] #launcher .launch-app .app-icon{width:clamp(50px,calc(var(--ref-unit)*12.6),190px)}
+@media(orientation:landscape) and (max-width:649px){:root[data-icon-size=small] #launcher .launch-app .app-icon{width:clamp(32px,10vh,50px)}:root[data-icon-size=large] #launcher .launch-app .app-icon{width:clamp(40px,13vh,64px)}}
+:root[data-bar=battery] .bar-speed small{font-size:clamp(10px,1.2vw,18px)}
