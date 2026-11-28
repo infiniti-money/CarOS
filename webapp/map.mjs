@@ -1,4 +1,4 @@
-import {project,visibleTiles,zoomCenter,wrapX,clamp,worldSize,relative,minZoom,maxZoom} from './map-core.mjs?v=11';
+import {project,visibleTiles,zoomCenter,wrapX,clamp,worldSize,relative,minZoom,maxZoom} from './map-core.mjs?v=12';
 export function createMap({getGps,getParking,getRoute}){
  const $=id=>document.getElementById(id),view=$('map-view');let enabled=false,z=5,center=project(16,108,z),drag=null,tiles=new Map(),pins=[],generation=0,overlay=null,tilted=false;
  const template='https://tile.openstreetmap.org/{z}/{x}/{y}.png'; // replace with licensed provider for production load

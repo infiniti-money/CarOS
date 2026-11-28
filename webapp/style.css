@@ -52,3 +52,6 @@ body[data-screen=home] .home-heading{position:absolute;top:4px;right:8%;font-siz
 :root[data-icon-size=large] #launcher .launch-app .app-icon{width:clamp(50px,calc(var(--ref-unit)*12.6),190px)}
 @media(orientation:landscape) and (max-width:649px){:root[data-icon-size=small] #launcher .launch-app .app-icon{width:clamp(32px,10vh,50px)}:root[data-icon-size=large] #launcher .launch-app .app-icon{width:clamp(40px,13vh,64px)}}
 :root[data-bar=battery] .bar-speed small{font-size:clamp(10px,1.2vw,18px)}
+
+/* Imported icons remain local, with original transparent PNG and rounded launcher geometry. */
+.app-icon .personal-icon{display:none;width:100%;height:100%;object-fit:contain;border-radius:inherit}.app-icon.has-personal-icon{background:transparent!important;border-color:transparent!important;box-shadow:none!important}.app-icon.has-personal-icon>svg{display:none}.app-icon.has-personal-icon>.personal-icon{display:block}#icon-pack{width:100%;max-width:100%;font-size:14px}
