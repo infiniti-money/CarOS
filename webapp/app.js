@@ -1,14 +1,15 @@
 (async()=>{
-const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=12');
-const {createMap}=await import('./map.mjs?v=12');
-const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=12');
-const {setupWidgets}=await import('./widgets.mjs?v=12');
-const {setupTerrain}=await import('./terrain.mjs?v=12');
-const {setupMedia}=await import('./media.mjs?v=12');
-const {setupShell}=await import('./shell.mjs?v=12');
-const {normalizeIconPack,loadIconPack}=await import('./icon-pack.mjs?v=12');
-const {elapsedText}=await import('./phone-core.mjs?v=12');
-const {distanceMeters}=await import('./core.mjs?v=12');
+const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=13');
+const {createMap}=await import('./map.mjs?v=13');
+const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=13');
+const {setupWidgets}=await import('./widgets.mjs?v=13');
+const {setupTerrain}=await import('./terrain.mjs?v=13');
+const {setupMedia}=await import('./media.mjs?v=13');
+const {setupReferenceScreens}=await import('./reference-screens.mjs?v=13');
+const {setupShell}=await import('./shell.mjs?v=13');
+const {normalizeIconPack,loadIconPack}=await import('./icon-pack.mjs?v=13');
+const {elapsedText}=await import('./phone-core.mjs?v=13');
+const {distanceMeters}=await import('./core.mjs?v=13');
 const $=id=>document.getElementById(id),key='infiniti-caros-web-v1';
 let state={};try{const v=JSON.parse(localStorage.getItem(key)||'{}');if(v&&typeof v==='object'&&!Array.isArray(v))state=v;}catch{}
 function save(){try{localStorage.setItem(key,JSON.stringify(state));return true;}catch{return false;}}
@@ -23,6 +24,7 @@ function parking(){const p=state.parking;const ok=p&&Number.isFinite(p.lat)&&Mat
 function parkingMetrics(){const p=state.parking,valid=p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Number.isFinite(p.time);$('park-elapsed').textContent='Thời gian đỗ: '+(valid?elapsedText(p.time):'—');const here=fix();$('park-distance').textContent='Khoảng cách: '+(valid&&here?Math.round(distanceMeters({latitude:here.lat,longitude:here.lon},{latitude:p.lat,longitude:p.lon}))+' m (ước tính)':'—');}parking();
 const map=createMap({getRoute:()=>plan?.points??[],getGps:()=>validFix(last)?{lat:last.coords.latitude,lon:last.coords.longitude}:null,getParking:()=>{const p=state.parking;return p&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180?p:null;}});
 const terrain=setupTerrain(fix),media=setupMedia();
+const reference=setupReferenceScreens({read:()=>state.copilot,write:v=>{state.copilot=v;return save();}});
 const widgets=setupWidgets({read:()=>state.widgets,write:w=>{state.widgets=w;save();},onChange:()=>map.refresh()});
 const shell=setupShell({readSpeed:()=>speedText(last),readWidget:()=>{const mode=document.documentElement.dataset.bar;if(mode==='battery')return {value:Number.isFinite(battery?.level)&&battery.level>=0&&battery.level<=1?Math.round(battery.level*100)+'%':'—',unit:'Pin thiết bị'};return {value:speedText(last).replace(' km/h',''),unit:'km/h'};},readPhone:()=>state.phone,writePhone:p=>{state.phone=p;return save();},readIcons:()=>{try{return normalizeIconPack(state.iconPack).icons;}catch{return {}; }},readLauncher:()=>state.launcher,writeLauncher:w=>{state.launcher=w;save();},onChange:()=>map.refresh()});
 function iconPackStatus(){let count=0;try{count=Object.keys(normalizeIconPack(state.iconPack).icons).length;}catch{}$('icon-pack-status').textContent=count?('Đã nhập '+count+' icon cá nhân'):'Icon mặc định';}
@@ -40,7 +42,7 @@ $('route-clear').onclick=clearRoute;
 $('route-plan').onsubmit=async e=>{e.preventDefault();if(request)return;const start=fix();if(!start){$('route-status').textContent='Cần GPS hợp lệ trước khi tính tuyến';return;}const end={lat:$('route-lat').valueAsNumber,lon:$('route-lon').valueAsNumber};let url;try{url=routeUrl($('route-provider').value.trim(),start,end);}catch{$('route-status').textContent='Máy chủ HTTPS hoặc tọa độ không hợp lệ';return;}if(!confirm('Gửi vị trí GPS và điểm đến đến '+new URL(url).host+' để tính tuyến?'))return;if(!fix())return;const current=new AbortController();request=current;plan=null;render();$('route-calculate').disabled=true;$('route-status').textContent='Đang tính tuyến';const timeout=setTimeout(()=>current.abort(),15000);try{const response=await fetch(url,{signal:current.signal,credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer'});if(!response.ok)throw Error('HTTP');const body=await response.text();if(body.length>2000000)throw Error('Large response');const result=parseRoute(JSON.parse(body));if(request!==current)return;plan=result;$('route-status').textContent='Tuyến dự kiến: '+(plan.meters/1000).toFixed(1)+' km · '+Math.ceil(plan.seconds/60)+' phút';render();}catch{if(request===current)$('route-status').textContent='Không tính được tuyến. Kiểm tra mạng, CORS và máy chủ.';}finally{clearTimeout(timeout);if(request===current){request=null;$('route-calculate').disabled=false;}}};
 $('speak').onclick=()=>{if(!('speechSynthesis'in window)){ $('gps').textContent='Thiết bị không hỗ trợ đọc tiếng Việt';return;}const u=new SpeechSynthesisUtterance($('gps').textContent);u.lang='vi-VN';speechSynthesis.cancel();speechSynthesis.speak(u);};
 $('export').onclick=()=>{const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.href=url;a.download='caros-web-data.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-$('erase').onclick=()=>{if(!confirm('Xóa chỗ đỗ và tùy chọn CarOS Web trên thiết bị?'))return;stop();meters=0;$('distance').textContent='Quãng đường phiên: —';clearRoute();terrain.stop();media.reset();$('dem-url').value='';$('dem-credit').value='';$('route-provider').value='';$('route-lat').value='';$('route-lon').value='';$('destination').value='';state={};shell.reset();try{localStorage.removeItem(key);$('privacy').textContent='Đã xóa dữ liệu CarOS Web';}catch{$('privacy').textContent='Không xóa được bộ nhớ trình duyệt';}theme();parking();widgets.render();iconPackStatus();};
+$('erase').onclick=()=>{if(!confirm('Xóa chỗ đỗ và tùy chọn CarOS Web trên thiết bị?'))return;stop();meters=0;$('distance').textContent='Quãng đường phiên: —';clearRoute();terrain.stop();media.reset();reference.reset();$('dem-url').value='';$('dem-credit').value='';$('route-provider').value='';$('route-lat').value='';$('route-lon').value='';$('destination').value='';state={};shell.reset();try{localStorage.removeItem(key);$('privacy').textContent='Đã xóa dữ liệu CarOS Web';}catch{$('privacy').textContent='Không xóa được bộ nhớ trình duyệt';}theme();parking();widgets.render();iconPackStatus();};
 function network(){$('network').textContent=navigator.onLine?'Đang trực tuyến (trạng thái trình duyệt)':'Đang ngoại tuyến';}window.addEventListener('online',network);window.addEventListener('offline',network);network();
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(watch!==null)stop('GPS đã dừng khi ứng dụng vào nền');if(request)clearRoute();}});window.addEventListener('pagehide',()=>{if(watch!==null)stop();});setInterval(render,1000);
 $('landscape-request').onclick=async()=>{
