@@ -48,3 +48,6 @@ PWA yêu cầu `orientation: landscape` trong manifest. Trình duyệt hỗ tr�
 
 ## Nghiên cứu CarPlay iOS 3.0.2 — đợt 1
 Tham khảo chức năng, không nhập binary, NIB, PNG hay SDK đóng gói. Cài đặt Home hỗ trợ ba kích thước icon; SmartBar chọn tốc độ GPS, pin thiết bị (nếu trình duyệt hỗ trợ và người dùng chọn) hoặc thu gọn. Pin là pin điện thoại, không phải pin xe; không hỗ trợ thì hiển thị —. Không gọi dịch vụ mạng. Tùy chọn lưu cục bộ, xuất/xóa theo cơ chế hiện có. Cache shell v11. Xem [phân tích nguồn](CARPLAY_IOS_302_RESEARCH.md). Chưa nghiệm thu thiết bị thật.
+
+## Nhập icon cá nhân
+Settings → Home → Gói icon cá nhân → chọn JSON định dạng `caros-icons-v1`, trường `icons` ánh xạ ID launcher 0–14 tới PNG base64. Chỉ PNG chuẩn <=512px, từng ảnh và gói giới hạn kích thước; kiểm tra decode trước lưu. Không tải ảnh lên máy chủ; lưu cục bộ và có thể khôi phục icon mặc định. Gói trích xuất CarPlay iOS 3.0.2 được cung cấp riêng cho chủ sở hữu, không lưu tài nguyên bên thứ ba trong repo công khai do chưa xác minh quyền phân phối. PNG CgBI đã được chuyển đổi sang PNG chuẩn bên ngoài repo. 10 icon tương ứng, 5 icon còn lại giữ SVG CarOS. NIB không thể dùng trực tiếp trên web. Cache v12.
