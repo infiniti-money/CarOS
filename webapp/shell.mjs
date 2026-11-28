@@ -1,4 +1,4 @@
-import {safeNumber,normalizePhone} from './phone-core.mjs';
+import {safeNumber,normalizePhone} from './phone-core.mjs?v=9';
 export {safeNumber};
 const titles={map:'Bản đồ',gps:'Xe của bạn',route:'Điều hướng',media:'Nhạc & Radio',terrain:'Địa hình 3D',camera:'Camera hành trình',settings:'Cài đặt',overview:'Tổng quan',phone:'Điện thoại',messages:'Messages',calendar:'Calendar',shortcuts:'Shortcuts',spotify:'Spotify',podcasts:'Podcasts',radio:'Radio',organize:'Organize apps'};
 export function setupShell({readSpeed,readPhone,writePhone,readLauncher,writeLauncher,onChange}){
