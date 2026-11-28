@@ -40,10 +40,10 @@ Mốc đối chiếu: `cc26926d2a17d5814a7e9f38daa48b55c1829774`. CI main [45964
 | 24 | Trợ lý | Rảnh tay | Một phần | Siri mở màn hình qua lệnh hệ điều hành; trợ lý trong app vẫn push-to-talk, chưa xác minh hội thoại rảnh tay |
 | 25 | Xe | CarPlay thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: entitlement, xe thật |
 | 26 | Xe | Android Auto thiết bị thật | Vướng | docs/CAR_INTEGRATION.md: host và phê duyệt |
-| 27 | Xe | Bluetooth tự kết nối | Chưa xác minh | Cần quyền OS và test thiết bị |
-| 28 | Xe | OBD-II tùy chọn | Chưa xác minh | Cần adapter và giao thức |
-| 29 | Xe | Thông số xe thực tế | Chưa xác minh | docs/CAR_INTEGRATION.md: không telemetry |
-| 30 | Xe | Phát hiện mất kết nối | Một phần | PR #29 CarAudioGate: 7 job CI đạt; cần host thật |
+| 27 | Xe | Bluetooth tự kết nối | Một phần | BLE FFE0/FFE1, ghi nhớ opt-in, retry giới hạn khi màn hình mở; cần adapter thật |
+| 28 | Xe | OBD-II tùy chọn | Một phần | Mode 01 chỉ đọc, ELM327 BLE UART FFE0/FFE1; cần QA xe thật |
+| 29 | Xe | Thông số xe thực tế | Một phần | 5 PID tiêu chuẩn, không giả số, stale/mất kết nối ẩn; cần xác minh ECU thật |
+| 30 | Xe | Phát hiện mất kết nối | Một phần | CarAudioGate và BLE disconnect/retry; cần host/adapter thật |
 | 31 | Camera | Quản lý dung lượng | Một phần | docs/DASHCAM.md; test/dashcam_test.dart; cần test dung lượng thật |
 | 32 | Camera | Ghi vòng lặp | Một phần | docs/DASHCAM.md: foreground; cần thiết bị |
 | 33 | Camera | Khóa video sự kiện | Một phần | docs/DASHCAM.md: marker bảo vệ thủ công |

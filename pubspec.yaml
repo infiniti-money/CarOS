@@ -30,6 +30,11 @@ dependencies:
   path_provider: 2.1.5
   video_player: 2.14.1
   share_plus: 12.0.2
+  flutter_reactive_ble: 5.4.2
+  # Keep native BLE implementation on the SDK 36-compatible release line.
+  reactive_ble_mobile: 5.4.2
+  permission_handler: 12.0.3
+  device_info_plus: 12.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
