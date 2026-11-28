@@ -1,4 +1,4 @@
-import {httpsUrl} from './extra-core.mjs?v=9';
+import {httpsUrl} from './extra-core.mjs?v=10';
 export function setupTerrain(getGps){const $=id=>document.getElementById(id),view=$('terrain-view');let map=null,token=0;
  function stop(){token++;map?.remove();map=null;view.hidden=true;$('terrain-stop').disabled=true;$('terrain-gps').disabled=true;$('terrain-status').textContent='Đã tắt địa hình 3D';}
  $('terrain-stop').onclick=stop;$('terrain-gps').onclick=()=>{const p=getGps();if(map&&p)map.jumpTo({center:[p.lon,p.lat],zoom:14});else $('terrain-status').textContent='Chưa có GPS hợp lệ';};

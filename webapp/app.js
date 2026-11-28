@@ -1,13 +1,13 @@
 (async()=>{
-const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=9');
-const {createMap}=await import('./map.mjs?v=9');
-const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=9');
-const {setupWidgets}=await import('./widgets.mjs?v=9');
-const {setupTerrain}=await import('./terrain.mjs?v=9');
-const {setupMedia}=await import('./media.mjs?v=9');
-const {setupShell}=await import('./shell.mjs?v=9');
-const {elapsedText}=await import('./phone-core.mjs?v=9');
-const {distanceMeters}=await import('./core.mjs?v=9');
+const {validFix,speedText,segment,mapsUrl}=await import('./core.mjs?v=10');
+const {createMap}=await import('./map.mjs?v=10');
+const {routeUrl,parseRoute,remaining}=await import('./route-core.mjs?v=10');
+const {setupWidgets}=await import('./widgets.mjs?v=10');
+const {setupTerrain}=await import('./terrain.mjs?v=10');
+const {setupMedia}=await import('./media.mjs?v=10');
+const {setupShell}=await import('./shell.mjs?v=10');
+const {elapsedText}=await import('./phone-core.mjs?v=10');
+const {distanceMeters}=await import('./core.mjs?v=10');
 const $=id=>document.getElementById(id),key='infiniti-caros-web-v1';
 let state={};try{const v=JSON.parse(localStorage.getItem(key)||'{}');if(v&&typeof v==='object'&&!Array.isArray(v))state=v;}catch{}
 function save(){try{localStorage.setItem(key,JSON.stringify(state));return true;}catch{return false;}}
@@ -36,6 +36,17 @@ $('speak').onclick=()=>{if(!('speechSynthesis'in window)){ $('gps').textContent=
 $('export').onclick=()=>{const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.href=url;a.download='caros-web-data.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 $('erase').onclick=()=>{if(!confirm('Xóa chỗ đỗ và tùy chọn CarOS Web trên thiết bị?'))return;stop();meters=0;$('distance').textContent='Quãng đường phiên: —';clearRoute();terrain.stop();media.reset();$('dem-url').value='';$('dem-credit').value='';$('route-provider').value='';$('route-lat').value='';$('route-lon').value='';$('destination').value='';state={};shell.reset();try{localStorage.removeItem(key);$('privacy').textContent='Đã xóa dữ liệu CarOS Web';}catch{$('privacy').textContent='Không xóa được bộ nhớ trình duyệt';}theme();parking();widgets.render();};
 function network(){$('network').textContent=navigator.onLine?'Đang trực tuyến (trạng thái trình duyệt)':'Đang ngoại tuyến';}window.addEventListener('online',network);window.addEventListener('offline',network);network();
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(watch!==null)stop('GPS đã dừng khi ứng dụng vào nền');if(request)clearRoute();}});window.addEventListener('pagehide',()=>{if(watch!==null)stop();});setInterval(render,1000);$('boot-status').hidden=true;
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(watch!==null)stop('GPS đã dừng khi ứng dụng vào nền');if(request)clearRoute();}});window.addEventListener('pagehide',()=>{if(watch!==null)stop();});setInterval(render,1000);
+$('landscape-request').onclick=async()=>{
+ const status=$('landscape-status');
+ if(matchMedia('(orientation: landscape)').matches){status.textContent='Đang ở chế độ ngang.';return;}
+ try{
+  if(typeof screen.orientation?.lock!=='function')throw Error('unsupported');
+  // Only use fullscreen/lock after explicit user interaction. Safari may reject both.
+  if(!document.fullscreenElement&&typeof document.documentElement.requestFullscreen==='function')await document.documentElement.requestFullscreen();
+  await screen.orientation.lock('landscape');
+  status.textContent='Đã yêu cầu hướng ngang.';
+ }catch{status.textContent='Trình duyệt không cho khóa hướng. Hãy tắt khóa xoay và xoay điện thoại ngang.';}
+};$('boot-status').hidden=true;
 if('serviceWorker'in navigator&&isSecureContext){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(()=>navigator.serviceWorker.ready).then(()=>{$('offline').textContent='Đã chuẩn bị giao diện ngoại tuyến';}).catch(()=>{$('offline').textContent='Chưa chuẩn bị được giao diện ngoại tuyến';});}
 })().catch(()=>{const status=document.getElementById('boot-status');status.hidden=false;status.firstChild.textContent='Không khởi tạo được CarOS. ';document.getElementById('offline').textContent='Không khởi tạo được WebApp';});

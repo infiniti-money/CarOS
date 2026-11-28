@@ -42,3 +42,6 @@ Organize apps: màn hình danh sách với công tắc bật/tắt và nút đ�
 
 ## Khắc phục cache giao diện
 HTML, stylesheet, entrypoint và các module nội bộ sử dụng cùng phiên bản URL v9. Service worker cài đặt shell bằng request cache reload, giữ vòng đời activation mặc định để không tải lại khi người dùng đang thao tác. Khi nâng cấp shell, tăng đồng bộ version các URL và cache name. Nếu một tab cũ vẫn giữ worker v8, đóng các tab CarOS rồi mở lại hoặc mở `?fresh=9` khi có mạng. Không tự xóa dữ liệu người dùng. Bài kiểm thử Chromium kiểm tra tài nguyên không version bị cũ, icon tròn, lưới 4 cột, 8 icon và SmartBar cố định ở viewport ngang nhỏ. Chưa xác minh Safari thật.
+
+## Hướng màn hình mobile (landscape-first)
+PWA yêu cầu `orientation: landscape` trong manifest. Trình duyệt hỗ trợ Screen Orientation API có thể khóa ngang sau thao tác người dùng; Safari và một số hệ điều hành có thể từ chối. Khi dọc, banner hướng dẫn xoay máy, giữ chức năng truy cập được và không xoay giả nội dung. Khi ngang, launcher luôn có bốn cột kể cả viewport 568px. Cache shell v10 cập nhật đồng bộ các URL tài nguyên. Kiểm thử Chromium kiểm tra manifest, fallback khi API bị từ chối và hai kích thước ngang; chưa chứng minh khóa hướng trên iPhone/Android thật. Native Flutter sẽ cần thay đổi riêng sau PR OBD-II #31 để không sửa đồng thời lib/main.dart.
